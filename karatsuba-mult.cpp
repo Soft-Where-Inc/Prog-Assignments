@@ -44,27 +44,33 @@ multiply(string lhs, string rhs)
     while (rhs.size() < length)
       rhs.insert(0,"0");
 
-    if (length == 1)
-        return to_string((lhs[0]-'0')*(rhs[0]-'0'));
+    if (length == 1) {
+        // cout << lhs[0] << ": " << lhs[0] - '0' << endl;
+        // cout << rhs[0] << ": " << rhs[0] - '0' << endl;
 
-    string lhs0 = lhs.substr(0,length/2);
-    string lhs1 = lhs.substr(length/2,length-length/2);
-    string rhs0 = rhs.substr(0,length/2);
-    string rhs1 = rhs.substr(length/2,length-length/2);
+        return to_string((lhs[0] - '0') * (rhs[0] - '0'));
+    }
 
-    string p0 = multiply(lhs0,rhs0);
-    string p1 = multiply(lhs1,rhs1);
-    string p2 = multiply(add(lhs0,lhs1),add(rhs0,rhs1));
-    string p3 = subtract(p2,add(p0,p1));
+    string lhs0 = lhs.substr(0, length/2);
+    string lhs1 = lhs.substr(length/2, (length - length/2));
+    string rhs0 = rhs.substr(0, length/2);
+    string rhs1 = rhs.substr(length/2, (length - length/2));
+
+    string p0 = multiply(lhs0, rhs0);
+    string p1 = multiply(lhs1, rhs1);
+    string p2 = multiply(add(lhs0,lhs1), add(rhs0,rhs1));
+    string p3 = subtract(p2, add(p0,p1));
 
     for (int i = 0; i < 2*(length-length/2); i++)
         p0.append("0");
+
     for (int i = 0; i < length-length/2; i++)
         p3.append("0");
 
-    string result = add(add(p0,p1),p3);
+    string result = add(add(p0,p1), p3);
 
-    return result.erase(0, min(result.find_first_not_of('0'), result.size()-1));
+    return result.erase(0, min(result.find_first_not_of('0'),
+                               (result.size() - 1)) );
 }
 
 string
@@ -74,6 +80,7 @@ subtract(string lhs, string rhs)
     int diff;
     string result;
 
+    // Prepend strings with 0s to make them of equal length
     while (lhs.size() < length)
       lhs.insert(0,"0");
 
@@ -96,12 +103,12 @@ subtract(string lhs, string rhs)
                     j--;
                  }
             }
-            result.insert(0, to_string(diff+10));
+            result.insert(0, to_string(diff + 10));
         }
-
     }
 
-    return result.erase(0, min(result.find_first_not_of('0'), result.size()-1));
+    return result.erase(0, min(result.find_first_not_of('0'),
+                               result.size()-1));
 }
 
 string
@@ -112,7 +119,7 @@ add(string lhs, string rhs)
     int sum_col;  // sum of two digits in the same column
     string result;
 
-    // pad the shorter string with zeros
+    // Prepend the shorter string with zeros
     while (lhs.size() < length)
       lhs.insert(0,"0");
 
@@ -123,13 +130,13 @@ add(string lhs, string rhs)
     for (int i = length-1; i >= 0; i--) {
       sum_col = (lhs[i]-'0') + (rhs[i]-'0') + carry;
       carry = sum_col/10;
-      result.insert(0,to_string(sum_col % 10));
+      result.insert(0, to_string(sum_col % 10));
     }
 
     if (carry)
       result.insert(0,to_string(carry));
 
     // remove leading zeros
-    return result.erase(0, min(result.find_first_not_of('0'), result.size()-1));
+    return result.erase(0, min(result.find_first_not_of('0'),
+                               result.size() - 1));
 }
-
