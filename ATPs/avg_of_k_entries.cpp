@@ -64,6 +64,8 @@ class avgKEntriesArray
 
       /*
        * Find the avg of k-contiguous entries of array of ints.
+       * This is a brute-force implementation.
+       *
        * Returns:
        *  # of such k-contiguous runs.
        *  Each k'th run's avg returned by avgs[] array.
@@ -90,6 +92,52 @@ class avgKEntriesArray
             start++;
             end++;
          }
+         return runid;
+      }
+
+      /*
+       * Find the avg of k-contiguous entries of array of ints.
+       * Returns:
+       *  # of such k-contiguous runs.
+       *  Each k'th run's avg returned by avgs[] array.
+       */
+      int
+      findSmartAvgK(int k, float *avgs) {
+         if (k >= arraySize) {
+            *avgs = findAvgOfSubArray(intArray, arraySize);
+            return 1;
+         }
+
+         // Do brute-force walk of k-contiguous entries till we exhaust
+         // the # of entries in the array.
+         /*
+          * Find the avg of 1st k-entries. When moving to the next batch, re-compute
+          * the new sum by dropping the 0'th value from old sum and add
+          * the next entry's value.
+          */
+         int *start = intArray;
+         int *end   = (intArray + k - 1);
+         int *arrayEnd = (intArray + arraySize);
+         int  runid = 0;
+         int  currSum = 0;
+
+         for (int i = 0; i < k; i++) {
+            currSum += *(start + i);
+         }
+
+         do {
+            avgs[runid] = (currSum * 1.0 / k);
+
+            // Recompute sum of next k-items
+            currSum -= *start;
+
+            // Move to next contiguous chunk
+            start++;
+            end++;
+            currSum += *end;
+
+            runid++;
+         } while (end < arrayEnd);
          return runid;
       }
 
@@ -135,8 +183,15 @@ int main() {
     int nruns = my_array.findAvgK(3, avgs);
 
     // Print resulting k-average values.
-    cout << "\n" << "k-running averages result:" << endl;
+    cout << "\n" << "Brute-force k-running averages result:" << endl;
     float *avgp = avgs;
+    for (int i = 0; i < nruns; i++, avgp++) {
+      cout << i << ": avg=" << *avgp << endl;
+    }
+
+    nruns = my_array.findSmartAvgK(3, avgs);
+    cout << "\n" << "Optimized k-running averages result:" << endl;
+    avgp = avgs;
     for (int i = 0; i < nruns; i++, avgp++) {
       cout << i << ": avg=" << *avgp << endl;
     }
