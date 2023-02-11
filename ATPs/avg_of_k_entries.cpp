@@ -1,39 +1,13 @@
-// Compute the average of k-consecutive entries in an array.
-
+/*
+ * Compute the average of k-consecutive entries in an array.
+ * Basic program implementing Sliding Window technique to compute avg. of
+ * k-contiguous entries in an array.
+ */
 #include <iostream>
 
 using namespace std;
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
-
-// create a class
-class Room {
-
-   public:
-    double length;
-    double breadth;
-    double height;
-
-    // Default constructor
-    Room() {
-       length  = 10;
-       breadth = 10;
-       height  = 12;
-    }
-    double calculateArea() {
-        return length * breadth;
-    }
-
-    double calculateVolume() {
-        return length * breadth * height;
-    }
-
-    // Is this room bigger than the other room by floor area?
-    bool
-    isBigger(Room other) {
-      return (this->calculateArea() > other.calculateArea());
-    }
-};
 
 /* Define a class to compute avg of k-entries in an array */
 class avgKEntriesArray
@@ -143,53 +117,38 @@ class avgKEntriesArray
 
       void
       printArray(void) {
+         cout << "[ ";
          for (int i = 0; i < arraySize; i++) {
-            cout << i << ": " << intArray[i] << endl;
+            cout << intArray[i] << ",";
          }
+         cout << "] " << endl;
       }
 };
 
 /*
  * main() begins here.
  */
-int main() {
-
-    // create object of Room class
-    Room room1;
-
-    // assign values to data members
-    room1.length = 42.5;
-    room1.breadth = 30.8;
-    room1.height = 19.2;
-
-    // calculate and display the area and volume of the room
-    cout << "Area of Room =  " << room1.calculateArea() << endl;
-    cout << "Volume of Room =  " << room1.calculateVolume() << endl;
-
-    Room basic_room;
-    cout << "Area of default Room =  " << basic_room.calculateArea() << endl;
-    cout << "Volume of default Room =  " << basic_room.calculateVolume() << endl;
-
-    cout << "basic_room is bigger than room1: "
-         << basic_room.isBigger(room1) << endl;
-
-
-    int data[] = {2, 3, 4, 55, 6, 3, 2};
+int main()
+{
+    int data[] = {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, -1, 333};
 
     avgKEntriesArray my_array(data, ARRAY_SIZE(data));
     my_array.printArray();
 
+    int k = 4;
     float avgs[ARRAY_SIZE(data)];
-    int nruns = my_array.findAvgK(3, avgs);
+    int nruns = my_array.findAvgK(k, avgs);
 
     // Print resulting k-average values.
-    cout << "\n" << "Brute-force k-running averages result:" << endl;
+    cout << "\n" << "Brute-force k-running averages result: k="
+         << k
+         << endl;
     float *avgp = avgs;
     for (int i = 0; i < nruns; i++, avgp++) {
       cout << i << ": avg=" << *avgp << endl;
     }
 
-    nruns = my_array.findSmartAvgK(3, avgs);
+    nruns = my_array.findSmartAvgK(k, avgs);
     cout << "\n" << "Optimized k-running averages result:" << endl;
     avgp = avgs;
     for (int i = 0; i < nruns; i++, avgp++) {
