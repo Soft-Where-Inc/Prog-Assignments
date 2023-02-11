@@ -14,12 +14,24 @@ class Room {
     double breadth;
     double height;
 
+    // Default constructor
+    Room() {
+       length  = 10;
+       breadth = 10;
+       height  = 12;
+    }
     double calculateArea() {
         return length * breadth;
     }
 
     double calculateVolume() {
         return length * breadth * height;
+    }
+
+    // Is this room bigger than the other room by floor area?
+    bool
+    isBigger(Room other) {
+      return (this->calculateArea() > other.calculateArea());
     }
 };
 
@@ -36,6 +48,14 @@ int main() {
     // calculate and display the area and volume of the room
     cout << "Area of Room =  " << room1.calculateArea() << endl;
     cout << "Volume of Room =  " << room1.calculateVolume() << endl;
+
+    Room basic_room;
+    cout << "Area of default Room =  " << basic_room.calculateArea() << endl;
+    cout << "Volume of default Room =  " << basic_room.calculateVolume() << endl;
+
+    cout << "basic_room is bigger than room1: "
+         << basic_room.isBigger(room1) << endl;
+
 
     return 0;
 }
