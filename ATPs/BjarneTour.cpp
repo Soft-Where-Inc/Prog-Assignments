@@ -27,6 +27,27 @@ print_cmdline_args(vector<string> &argv);
 constexpr double ce_square(double x) { return(x * x); }
 
 void do_auto_print(void);
+void do_increment(void);
+
+/*
+ * -----------------------------------------------------------------------------
+ * Function to overload << operator to generically print all elements in a
+ * vector. Uses template of generic typename 'S'.
+ *
+ * Note: The arg name 'vector' is allowed even though 'vector' is a keyword.
+ *
+ * Ref:  https://www.geeksforgeeks.org/different-ways-to-print-elements-of-vector/
+ * -----------------------------------------------------------------------------
+ */
+template <typename S>
+ostream& operator<<(ostream& os, const vector<S>& vector)
+{
+    // Printing all the elements using <<
+    for (auto element : vector) {
+        os << element << " ";
+    }
+    return os;
+}
 
 int
 main(int argc, char *argv[])
@@ -80,6 +101,7 @@ main(int argc, char *argv[])
 
    // ----
    do_auto_print();
+   do_increment();
 }
 
 double
@@ -109,7 +131,7 @@ square(const char *x)
 
 /*
  * Example of for()-loop variables w/o declarating type of counter.
- * Iterate thru list by enumeration.
+ * Shows how-to iterate thru a list by enumeration: auto <var> : list
  */
 void
 do_auto_print(void)
@@ -117,15 +139,31 @@ do_auto_print(void)
    int intarray[] = {10, 21, 32, 43, 54};
 
    cout << "Auto-print contents of array, vector etc. " << endl;
-   for (auto i:intarray) {
+   for (auto i : intarray) {
       cout << i << " ";
    }
    cout << endl;
 
    vector<int> intvec = {6, 7, 8, 9, 10};
-   for (auto intval:intvec) {
+   for (auto intval : intvec) {
       cout << intval << " ";
    }
    cout << endl;
 }
 
+/*
+ * In-place increment a vector of ints, using a reference to element.
+ * Shows how-to print a vector using << overloading method.
+ */
+void
+do_increment(void)
+{
+   vector<int> intvec = {6, 7, 8, 9, 10};
+
+   cout << "Initial vector        : " << intvec << endl;
+   for (auto& intref : intvec) {
+      intref++;
+   }
+
+   cout << "Vector after increment: " << intvec << endl;
+}
