@@ -48,8 +48,9 @@ class maxSumKEntriesArray
        * Returns:
        *  # of such k-contiguous runs.
        *  Each k'th run's avg returned by avgs[] array.
+       */
       int
-      findMaxSumK_BruteForce(int k)
+      findMaxSumK_BruteForce(int k, int *maxStart)
       {
          if (k >= arraySize) {
             return findSumOfN(intArray, arraySize);
@@ -65,7 +66,10 @@ class maxSumKEntriesArray
 
          while (end <= arrayEnd) {
             int thisMaxSum = findSumOfN(start, k);
-            maxSum = MAX(maxSum, thisMaxSum);
+            if (thisMaxSum > maxSum) {
+               maxSum = thisMaxSum;
+               *maxStart = *start;
+            }
 
             // Move to next contiguous chunk
             runid++;
@@ -74,7 +78,6 @@ class maxSumKEntriesArray
          }
          return maxSum;
       }
-       */
 
       /*
        * Find the avg of k-contiguous entries of array of ints.
@@ -138,19 +141,20 @@ class maxSumKEntriesArray
  */
 int main()
 {
-    int data[] = {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, -1, 333};
+    int data[] = {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, 101, 333};
 
     maxSumKEntriesArray my_array(data, ARRAY_SIZE(data));
     my_array.printArray();
 
     int k = 4;
-    int result = 0;
-    // int result = my_array.findMaxSumK_BruteForce(k);
+    int startOfRun = 0;
+    int result = my_array.findMaxSumK_BruteForce(k, &startOfRun);
 
     // Print resulting k-average values.
     cout << "\n" << "Brute-force k-running max-sum result: k="
          << k
          << ", max SUM()=" << result
+         << ", starting from " << &startOfRun << ", " << startOfRun
          << endl;
 
     return 0;
