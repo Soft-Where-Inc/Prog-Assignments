@@ -27,7 +27,9 @@ print_cmdline_args(vector<string> &argv);
 constexpr double ce_square(double x) { return(x * x); }
 
 void do_auto_print(void);
-void do_increment(void);
+void do_incr(void);
+void do_incr2(void);
+void do_incr(vector<int>& items);
 
 /*
  * -----------------------------------------------------------------------------
@@ -101,7 +103,8 @@ main(int argc, char *argv[])
 
    // ----
    do_auto_print();
-   do_increment();
+   do_incr();
+   do_incr2();
 }
 
 double
@@ -127,6 +130,11 @@ square(const char *x)
    for (auto i = 0; i < argv.size(); i++) {
       cout << "Arg[" << i << "] argv: '" << argv[i] << "'" << endl;
    }
+   cout << "Print " << argv.size() << " arguments using enumeration: ";
+   for (auto arg : argv) {
+      cout << arg << " ";
+   }
+   cout << endl;
  }
 
 /*
@@ -138,7 +146,7 @@ do_auto_print(void)
 {
    int intarray[] = {10, 21, 32, 43, 54};
 
-   cout << "Auto-print contents of array, vector etc. " << endl;
+   cout << __func__ << ": contents of array, vector etc. " << endl;
    for (auto i : intarray) {
       cout << i << " ";
    }
@@ -156,14 +164,40 @@ do_auto_print(void)
  * Shows how-to print a vector using << overloading method.
  */
 void
-do_increment(void)
+do_incr(void)
 {
    vector<int> intvec = {6, 7, 8, 9, 10};
 
-   cout << "Initial vector        : " << intvec << endl;
+   cout << __func__ << ":Initial vector        : " << intvec << endl;
    for (auto& intref : intvec) {
       intref++;
    }
 
-   cout << "Vector after increment: " << intvec << endl;
+   cout << __func__ << ":Vector after increment: " << intvec << endl;
+}
+
+/*
+ * Same as do_incr(), but we call a sub-method which receives an
+ * int-vector, by reference, to do the in-place increment.
+ */
+void
+do_incr2(void)
+{
+   vector<int> intvec = {16, 17, 18, 19, 20};
+
+   cout << __func__ << ":Initial vector        : " << intvec << endl;
+
+   do_incr(intvec);
+
+   cout << __func__ << ":Vector after increment: " << intvec << endl;
+}
+
+/*
+ * Workhorse method that receives a vector by reference. And increments each
+ * item in the vector.
+ */
+void
+do_incr(vector<int>& items)
+{
+   for (auto& item : items) { item++; }
 }
