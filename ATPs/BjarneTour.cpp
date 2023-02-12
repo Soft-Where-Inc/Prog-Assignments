@@ -24,12 +24,18 @@ double square(const char *x);
 void
 print_cmdline_args(vector<string> &argv);
 
+// Function defined as a constant expression; Evaluated at compile-time.
 constexpr double ce_square(double x) { return(x * x); }
 
 void do_auto_print(void);
 void do_incr(void);
 void do_incr2(void);
 void do_incr(vector<int>& items);
+
+// Read-only; i.e. 'const' version of prev method.
+void do_incr_ro(const vector<int>& items);
+
+void test_null_ptr(void);
 
 /*
  * -----------------------------------------------------------------------------
@@ -77,6 +83,7 @@ main(int argc, char *argv[])
    // -----
    // Use {} for to initialize variable, to catch compile time errors.
    // 'i' will be truncated; 'd' will not be.
+   // Prefer initializing using {} for variables declared with named type
    int i = 7.3;
    double d {7.3};
    cout << "int d using {}: i=" << i << ", d=" << d << endl;
@@ -105,6 +112,8 @@ main(int argc, char *argv[])
    do_auto_print();
    do_incr();
    do_incr2();
+
+   test_null_ptr();
 }
 
 double
@@ -190,6 +199,8 @@ do_incr2(void)
    do_incr(intvec);
 
    cout << __func__ << ":Vector after increment: " << intvec << endl;
+
+   do_incr_ro(intvec);
 }
 
 /*
@@ -200,4 +211,34 @@ void
 do_incr(vector<int>& items)
 {
    for (auto& item : items) { item++; }
+}
+
+void
+do_incr_ro(const vector<int>& items)
+{
+   // Disallowed as 'items' is a reference to a 'const' vector.
+   // for (auto& item : items) { item++; }
+
+   cout << __func__ << ": Can only print contents: " << items << endl;
+}
+
+/*
+ * Function to exercise use of 'nullptr' keyword to handle NULL ptrs.
+ */
+void
+test_null_ptr()
+{
+   int   i;
+   int  *ip = &i;
+   int  *iNullp = nullptr;
+
+   cout << __func__ << ": ip=" << ip
+        << " is " << ((ip == nullptr) ? "" : "not")
+        << " NULL ptr."
+        << endl;
+
+   cout << __func__ << ": iNullp=" << iNullp
+        << " is " << ((iNullp == nullptr) ? "" : "not")
+        << " NULL ptr."
+        << endl;
 }
