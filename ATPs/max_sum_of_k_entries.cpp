@@ -2,17 +2,20 @@
  * max_sum_of_k_entries.cpp:
  *
  * Compute the max-sum of k-consecutive entries in an array.
- * Basic program implementing Sliding Window technique to compute avg. of
+ * Basic program implementing Sliding Window technique to compute max(SUM) of
  * k-contiguous entries in an array.
  */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof(*a))
 #define MAX(a, b) ( ((a) >= (b)) ? (a) : (b))
 
-/* Define a class to compute avg of k-entries in an array */
+// Function prototypes
+void run_test(void);
+
+/* Define a class to compute max(SUM) of k-entries in an array */
 class maxSumKEntriesArray
 {
    private:
@@ -21,11 +24,14 @@ class maxSumKEntriesArray
 
    public:
       // Constructor
-      maxSumKEntriesArray(int *input, int nentries) {
-         for (int i = 0; i < nentries; i++, input++) {
-            intArray[i] = *input;
+      maxSumKEntriesArray(const vector<int>& input) {
+         // for (auto i = 0; i < nentries; i++, input++) {
+         auto i {0};
+         for (auto v : input) {
+            intArray[i] = v;
+            i++;
          }
-         arraySize = nentries;
+         arraySize = input.size();
       }
 
       /*
@@ -42,17 +48,17 @@ class maxSumKEntriesArray
       }
 
       /*
-       * Find the avg of k-contiguous entries of array of ints.
+       * Find the max(SUM) of k-contiguous entries of array of ints.
        * This is a brute-force implementation.
        *
        * Returns:
-       *  # of such k-contiguous runs.
-       *  Each k'th run's avg returned by avgs[] array.
+       *  Max SUM() across all k-contiguous values.
        */
       int
-      findMaxSumK_BruteForce(int k, int *maxStart)
+      findMaxSumK_BruteForce(int k, int *maxStartIndex)
       {
          if (k >= arraySize) {
+            *maxStartIndex = 0;
             return findSumOfN(intArray, arraySize);
          }
 
@@ -68,7 +74,7 @@ class maxSumKEntriesArray
             int thisMaxSum = findSumOfN(start, k);
             if (thisMaxSum > maxSum) {
                maxSum = thisMaxSum;
-               *maxStart = *start;
+               *maxStartIndex = (start - intArray);
             }
 
             // Move to next contiguous chunk
@@ -80,37 +86,46 @@ class maxSumKEntriesArray
       }
 
       /*
-       * Find the avg of k-contiguous entries of array of ints.
+       * Find the max SUM() of k-contiguous entries of array of ints using
+       * sliding window technique.
+       *
+       *  [ - - - - - - - - - - - - - - - - - - - - - - ... n ... - ]
+       *    x x x x x                   (k entries)
+       *
+       * - Find SUM of 1st k-entries.
+       * - If (k+1)'th value < 0th value of prev-k'th run, retain current sum.
+       * - Otherwise, recompute new SUM() as (currSum - 0th-value + (k+1)'st-value
+       *
        * Returns:
        *  # of such k-contiguous runs.
-       *  Each k'th run's avg returned by avgs[] array.
+       */
       int
-      findSmartAvgK(int k, float *avgs) {
+      findMaxSum(int k, int *maxStartIndex) {
          if (k >= arraySize) {
-            *avgs = findAvgOfSubArray(intArray, arraySize);
-            return 1;
+            *maxStartIndex = 0;
+            return findSumOfN(intArray, arraySize);
          }
 
-         // Do brute-force walk of k-contiguous entries till we exhaust
-         // the # of entries in the array.
-         **
-          * Find the avg of 1st k-entries. When moving to the next batch, re-compute
-          * the new sum by dropping the 0'th value from old sum and add
-          * the next entry's value.
-          **
+         /*
+          * Find the SUM of 1st k-entries. When moving to the next batch,
+          * re-compute the new sum by dropping the 0'th value from old sum and
+          * add the next entry's value.
+          */
          int *start = intArray;
          int *end   = (intArray + k - 1);
-         int *arrayEnd = (intArray + arraySize);
+         int *arrayEnd = (intArray + arraySize - 1);
          int  runid = 0;
          int  currSum = 0;
+         int  result = 0;
 
          for (int i = 0; i < k; i++) {
             currSum += *(start + i);
          }
+         *maxStartIndex = 0;
+         result = currSum;
 
-         do {
-            avgs[runid] = (currSum * 1.0 / k);
-
+         // Sliding window loop begins here.
+         while (end < arrayEnd) {
             // Recompute sum of next k-items
             currSum -= *start;
 
@@ -118,19 +133,40 @@ class maxSumKEntriesArray
             start++;
             end++;
             currSum += *end;
-
-            runid++;
-         } while (end < arrayEnd);
-         return runid;
+            if (currSum > result) {
+               result = currSum;
+               *maxStartIndex = (start - intArray);
+            }
+         }
+         return result;
       }
-       */
+
+      // Verify the result by the two methods.
+      bool
+      verify(int k)
+      {
+         int startIndex_slow = -1;
+         int startIndex_opt  = -1;
+
+         return (    findMaxSumK_BruteForce(k, &startIndex_slow)
+                     == findMaxSum(k, &startIndex_opt));
+      }
 
       void
-      printArray(void)
+      print(void)
       {
          cout << "[ ";
          for (int i = 0; i < arraySize; i++) {
-            cout << intArray[i] << ",";
+            cout << intArray[i] << " ";
+         }
+         cout << "] " << endl;
+      }
+
+      void
+      print(int startIndex, int numItems) {
+         cout << "[ ";
+         for (int i = startIndex; i < (startIndex + numItems); i++) {
+            cout << intArray[i] << " ";
          }
          cout << "] " << endl;
       }
@@ -141,21 +177,63 @@ class maxSumKEntriesArray
  */
 int main()
 {
-    int data[] = {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, 101, 333};
+    vector<int> data {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, 101, 333};
 
-    maxSumKEntriesArray my_array(data, ARRAY_SIZE(data));
-    my_array.printArray();
+    maxSumKEntriesArray my_array(data);
+    my_array.print();
 
     int k = 4;
     int startOfRun = 0;
     int result = my_array.findMaxSumK_BruteForce(k, &startOfRun);
 
-    // Print resulting k-average values.
+    // Print resulting max(SUM-k-values).
     cout << "\n" << "Brute-force k-running max-sum result: k="
          << k
          << ", max SUM()=" << result
-         << ", starting from " << &startOfRun << ", " << startOfRun
+         << ", starting from index=" << startOfRun
          << endl;
 
+    result = my_array.findMaxSum(k, &startOfRun);
+
+    // Print resulting max(SUM-k-values).
+    cout << "\n" << "Sliding Window k-running max-sum result: k="
+         << k
+         << ", max SUM()=" << result
+         << ", starting from index=" << startOfRun
+         << endl;
+    my_array.print(startOfRun, k);
+
+    cout << "Verification of two methods: " << my_array.verify(k) << endl;
+
+    run_test();
+
     return 0;
+}
+
+/*
+ * Run a bunch of test cases. Verify that the result by the brute-force
+ * approach matches the optimized approach.
+ */
+void
+run_test(void)
+{
+   vector<vector <int>> test_data
+         {  { 2, 3, 4, 5, 4, 3, 2, 1 }
+          , { 1, 3, 9, 4, 3, 22, 11, 3, 4, 55 }
+         };
+
+   auto k = 3;
+   for (auto data : test_data) {
+      auto startIndex = 0;
+
+      maxSumKEntriesArray test_array(data);
+
+      auto result = test_array.findMaxSum(k, &startIndex);
+
+      cout << "# of elements: " << data.size()
+           << ", max SUM=" << result
+           << ", starts at index=" << startIndex
+           << ", verification=" << test_array.verify(k)
+           << endl;
+   }
 }
