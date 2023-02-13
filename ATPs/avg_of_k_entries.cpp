@@ -18,7 +18,7 @@ class avgKEntriesArray
    public:
       // Constructor
       avgKEntriesArray(int *input, int nentries) {
-         for (int i = 0; i < nentries; i++, input++) {
+         for (auto i = 0; i < nentries; i++, input++) {
             intArray[i] = *input;
          }
          arraySize = nentries;
@@ -30,7 +30,7 @@ class avgKEntriesArray
       float
       findAvgOfSubArray(int *start, int n) {
          float result = 0;
-         for (int i = 0; i < n; i++, start++) {
+         for (auto i {0}; i < n; i++, start++) {
             result += *start;
          }
          return (result / n);
@@ -130,7 +130,7 @@ class avgKEntriesArray
  */
 int main()
 {
-    int data[] = {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, -1, 333};
+    int data[] {2, 3, 4, 55, 6, 3, 2, 44, 232, 344, -1, 333};
 
     avgKEntriesArray my_array(data, ARRAY_SIZE(data));
     my_array.printArray();
