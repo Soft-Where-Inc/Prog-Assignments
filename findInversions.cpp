@@ -57,7 +57,13 @@ class Inversions
          if (nelements == 2) {
             return numInvBase(0, nelements);
          }
-         return -1;
+         int rv = 0;
+         int half = (nelements / 2);
+
+         // Recursive on left / right; sorting each half to count # inversions.
+         rv += numInvSort(0, half);
+         rv += numInvSort(half, half);
+         return rv;
       }
 
       // Debug: Dump contents of input array
@@ -72,6 +78,17 @@ class Inversions
    private:
       int nelements = 0;
       int numbers[NUM_ITEMS] = {0};
+
+      // Given a [sub-]array of 'n' items, implement merge-sort to count # of
+      // inversions in this set.
+      int
+      numInvSort(int start, int nitems)
+      {
+         if (nitems == 2) {
+            return numInvBase(start, nitems);
+         }
+         return 0;
+      }
 
       // Implement the base case: Assert(n==2);
       int
