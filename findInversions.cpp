@@ -27,10 +27,6 @@ using namespace std;
 
 class Inversions
 {
-   private:
-      int nelements = 0;
-      int numbers[NUM_ITEMS] = {0};
-
    public:
       // Load data items from input file
       void
@@ -42,15 +38,54 @@ class Inversions
             return;
          }
 
-         string line;
-         while ( getline (inpfile, line) )
-         {
-            // cout << line << '\n';
-            numbers[nelements++] = atoi(line);
+         // Read till eof contents into int array.
+         while (inpfile >> numbers[nelements]) {
+            nelements++;
          }
 
          inpfile.close();
-         cout << "Read " << nelements << " from input file " << filename << endl;
+         cout << "Read " << nelements << " ints from input file " << filename << endl;
+      }
+
+      // Find # of inversions in input array
+      int
+      numInversions()
+      {
+         if (nelements <= 1) {
+            return 0;
+         }
+         if (nelements == 2) {
+            return numInvBase(0, nelements);
+         }
+         return -1;
+      }
+
+      // Debug: Dump contents of input array
+      void
+      dump(void)
+      {
+         cout << nelements << " ints loaded" << endl;
+         for (auto ictr = 0; ictr < nelements; ictr++) {
+            cout << "[" << ictr << "]: " << numbers[ictr] << endl;
+         }
+      }
+   private:
+      int nelements = 0;
+      int numbers[NUM_ITEMS] = {0};
+
+      // Implement the base case: Assert(n==2);
+      int
+      numInvBase(int start, int n)
+      {
+         int rv = 0;
+         // Flip the pair if needed, and count 1 inversion.
+         if (numbers[start] > numbers[start + 1]) {
+            auto tmp = numbers[start];
+            numbers[start] = numbers[start + 1];
+            numbers[start + 1] = tmp;
+            rv = 1;
+         }
+         return rv;
       }
 };
 
@@ -63,4 +98,8 @@ main(int argc, const char *argv[])
    }
    Inversions data;
    data.load(argv[1]);
+   data.dump();
+
+   cout << "# of inversions found: " << data.numInversions() << endl;
+   data.dump();
 }
