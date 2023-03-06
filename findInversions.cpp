@@ -84,10 +84,69 @@ class Inversions
       int
       numInvSort(int start, int nitems)
       {
+         if (nelements <= 1) {
+            return 0;
+         }
          if (nitems == 2) {
             return numInvBase(start, nitems);
          }
-         return 0;
+
+         int rv = 0;
+         int mid = (nitems / 2);
+         rv += numInvSort(start, mid);
+         rv += numInvSort((start + mid), mid);
+
+         rv += numInvMerge(start, (start + mid), mid);
+         return rv;
+      }
+
+      // -----------------------------------------------------------------------
+      // Implement merge-sort of 2 sub-lists, each of nitems length.
+      // Count and return # of inversions found. Sort in-place.
+      // 'lo', 'hi' are start indexes of lower / higher sub-list
+      int
+      numInvMerge(int lo, int hi, int nitems)
+      {
+         // Assert((low + nitems) == hi);
+         // Deal with simple case when lower-list is <= higher-list
+         if (numbers[lo + nitems - 1] <= numbers[hi]) {
+            return 0;
+         }
+
+         // Deal with reverse case when all items in sorted upper-half are <= all
+         // items in sorted lower-half
+         if (numbers[hi + nitems - 1] <= numbers[lo]) {
+            // Flip both sub-halves, in-place.
+            for (auto ictr = 0; ictr < nitems; ictr++) {
+               auto tmp = numbers[lo + ictr];
+               numbers[lo + ictr] = numbers[hi + ictr];
+               numbers[hi + ictr] = tmp;
+            }
+            return (nitems * nitems);
+         }
+
+         // Merge the two sub-lists, counting # inversions along the way
+         int rv = 0;
+         int loitems = nitems;
+         int *lop = &numbers[lo];
+         int *hip = &numbers[hi];
+
+         while (loitems) {
+            if (*lop <= *hip) {
+               lop++;
+               loitems--;
+            } else {
+               // Value in upper-half is < value in lower-half. Flip them
+               auto tmp = *lop;
+               *lop = *hip;
+               *hip = tmp;
+               lop++;
+               hip++;
+               loitems--;
+               rv++;
+            }
+         }
+         return rv;
       }
 
       // Implement the base case: Assert(n==2);
