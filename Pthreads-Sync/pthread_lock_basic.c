@@ -15,15 +15,25 @@ int mails = 0;
 pthread_mutex_t mutex;
 
 void *
-routine()
+routine(void *arg)
 {
+    int thread_id = *(int *) arg;
     // Each thread process 10M mails.
+    pthread_mutex_lock(&mutex);
+    int old_mails_ct = mails;
+
     for (int i = 0; i < 10 * MILLION; i++) {
         mails++;
         // read mails
         // increment
         // write mails
     }
+    int new_mails_ct = mails;
+    pthread_mutex_unlock(&mutex);
+    printf("ThreadID=%d processed %d mails from old=%d to new=%d mails.\n",
+           thread_id, (10 * MILLION),
+           old_mails_ct, new_mails_ct);
+
     return NULL;
 }
 
@@ -34,7 +44,7 @@ main(int argc, char* argv[])
 
     pthread_t threads[NUM_THREADS];
     for (int tctr = 0; tctr < NUM_THREADS; tctr++) {
-        if (pthread_create(&threads[tctr], NULL, &routine, NULL) != 0) {
+        if (pthread_create(&threads[tctr], NULL, &routine, &tctr) != 0) {
             return 1;
         }
     }
