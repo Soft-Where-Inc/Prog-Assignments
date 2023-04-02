@@ -21,15 +21,17 @@ routine(void *arg)
     // Each thread process 10M mails.
     pthread_mutex_lock(&mutex);
     int old_mails_ct = mails;
+    pthread_mutex_unlock(&mutex);
 
     for (int i = 0; i < 10 * MILLION; i++) {
+        pthread_mutex_lock(&mutex);
         mails++;
+        pthread_mutex_unlock(&mutex);
         // read mails
         // increment
         // write mails
     }
     int new_mails_ct = mails;
-    pthread_mutex_unlock(&mutex);
     printf("ThreadID=%d processed %d mails from old=%d to new=%d mails.\n",
            thread_id, (10 * MILLION),
            old_mails_ct, new_mails_ct);
