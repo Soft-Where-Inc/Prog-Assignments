@@ -1,5 +1,6 @@
 /*
  * Conditional Variables & Mutexes: Gas Station example.
+ *
  * Ref:
  *   https://code-vault.net/lesson/18ec1942c2da46840693efe9b51ff44a
  *  Video: https://www.youtube.com/watch?v=0sVGnxg6Z3k
@@ -14,7 +15,9 @@ pthread_mutex_t mutexFuel;
 pthread_cond_t condFuel;
 int fuel = 0;
 
-void* fuel_filling(void* arg) {
+void *
+fuel_filling(void * arg)
+{
     for (int i = 0; i < 5; i++) {
         pthread_mutex_lock(&mutexFuel);
         fuel += 15;
@@ -23,9 +26,12 @@ void* fuel_filling(void* arg) {
         pthread_cond_signal(&condFuel);
         sleep(1);
     }
+    return NULL;
 }
 
-void* car(void* arg) {
+void *
+car(void * arg)
+{
     pthread_mutex_lock(&mutexFuel);
     while (fuel < 40) {
         printf("No fuel. Waiting...\n");
@@ -38,9 +44,12 @@ void* car(void* arg) {
     fuel -= 40;
     printf("Got fuel. Now left: %d\n", fuel);
     pthread_mutex_unlock(&mutexFuel);
+    return NULL;
 }
 
-int main(int argc, char* argv[]) {
+int
+main(int argc, char * argv[])
+{
     pthread_t th[2];
     pthread_mutex_init(&mutexFuel, NULL);
     pthread_cond_init(&condFuel, NULL);
