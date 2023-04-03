@@ -44,7 +44,7 @@ fuel_filling(void * arg)
         for (int i = 0; i < NUM_FILL_LOOPS; i++) {
             pthread_mutex_lock(&mutexFuel);
             fuel += AMOUNT_FILLED_PER_LOOP;
-            printf("[ThreadID=%d] Filled fuel ... Available fuel=%d\n",
+            printf("[PumpID=%d] Filled fuel ... Available fuel=%d\n",
                     thread_id, fuel);
 
             // The order of these two calls seems to not matter for overall
@@ -52,7 +52,9 @@ fuel_filling(void * arg)
             // the thread receiving the signal can react to the signal.
             // If we don't unlock, the other thread will just block waiting
             // to acquire the lock.
-            pthread_cond_signal(&condFuel);
+            // pthread_cond_signal(&condFuel);
+
+            pthread_cond_broadcast(&condFuel);
             pthread_mutex_unlock(&mutexFuel);
             sleep(1);
         }
@@ -71,7 +73,7 @@ car(void * arg)
 
     pthread_mutex_lock(&mutexFuel);
     while (fuel < MIN_FUEL_AVAILABLE) {
-        printf("[ThreadID=%d] Available fuel=%d is inadequate. Waiting...\n",
+        printf("[Car ID=%d] Available fuel=%d is inadequate. Waiting...\n",
                 thread_id, fuel);
 
         // This seems to work ... but is not good enough.
@@ -87,7 +89,7 @@ car(void * arg)
          */
         pthread_cond_wait(&condFuel, &mutexFuel);
     }
-    printf("[ThreadID=%d] Available fuel=%d. Get fuel=%d, fuel left=%d\n",
+    printf("[Car ID=%d] **** Available fuel=%d. Get fuel=%d, fuel left=%d. Exiting.\n",
             thread_id, fuel, MIN_FUEL_AVAILABLE, (fuel - MIN_FUEL_AVAILABLE));
     fuel -= MIN_FUEL_AVAILABLE;
     pthread_mutex_unlock(&mutexFuel);
