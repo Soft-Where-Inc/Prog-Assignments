@@ -18,10 +18,10 @@
 #define MIN_FUEL_AVAILABLE       40
 
 // # of threads filling gas tank
-#define NUM_FILLERS              1
+#define NUM_FILLERS              3
 
 // # of cars drawing fuel at on time. (Think lanes)
-#define NUM_CARS                 4
+#define NUM_CARS                 8
 
 // Total # of threads in the system
 #define NUM_THREADS     (NUM_FILLERS + NUM_CARS)
@@ -115,7 +115,7 @@ main(int argc, char * argv[])
     }
 
     // Start n-threads filling up the fuel tank
-    for (int i = 0; i < NUM_FILLERS; i++) {
+    for (int i = 0; i < NUM_FILLERS; i++, tctr++) {
         tid[tctr] = tctr;
         if (pthread_create(&th[i], NULL, &fuel_filling, (void *) &tid[tctr]) != 0) {
             perror("Failed to create fuel-filling thread");
