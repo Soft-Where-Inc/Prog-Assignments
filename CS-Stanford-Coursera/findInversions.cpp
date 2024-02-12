@@ -23,7 +23,7 @@
 
 using namespace std;
 
-#define NUM_ITEMS (100 * 1000)   // 100K
+const int Num_items = (100 * 1000);   // 100K
 
 class Inversions
 {
@@ -47,7 +47,8 @@ class Inversions
          cout << "Read " << nelements << " ints from input file " << filename << endl;
       }
 
-      // Find # of inversions in input array
+      // Find # of inversions in input array loaded by the load() method.
+      // The input data will be sorted in-place upon return.
       int
       numInversions()
       {
@@ -57,12 +58,17 @@ class Inversions
          if (nelements == 2) {
             return numInvBase(0, nelements);
          }
+
+         cout << __func__ << ": start=0" << ", nelements=" << nelements << endl;
          int rv = 0;
          int half = (nelements / 2);
 
          // Recursive on left / right; sorting each half to count # inversions.
          rv += numInvSort(0, half);
-         rv += numInvSort(half, half);
+         rv += numInvSort(half, (nelements - half));
+
+         // Merge the two sorted sub-lists
+         rv += numInvMerge(0, half, half);
          return rv;
       }
 
@@ -77,24 +83,26 @@ class Inversions
       }
    private:
       int nelements = 0;
-      int numbers[NUM_ITEMS] = {0};
+      int numbers[Num_items] = {0};
 
       // Given a [sub-]array of 'n' items, implement merge-sort to count # of
-      // inversions in this set.
+      // inversions in this set starting at index 'start', with 'nitems' in the
+      // set. Input data will be sorted upon return.
       int
       numInvSort(int start, int nitems)
       {
-         if (nelements <= 1) {
+         if (nitems <= 1) {
             return 0;
          }
          if (nitems == 2) {
             return numInvBase(start, nitems);
          }
 
+         // cout << __func__ << ": start=" << start << ", nitems=" << nitems << endl;
          int rv = 0;
          int mid = (nitems / 2);
          rv += numInvSort(start, mid);
-         rv += numInvSort((start + mid), mid);
+         rv += numInvSort((start + mid), (nitems - mid));
 
          rv += numInvMerge(start, (start + mid), mid);
          return rv;
@@ -104,6 +112,7 @@ class Inversions
       // Implement merge-sort of 2 sub-lists, each of nitems length.
       // Count and return # of inversions found. Sort in-place.
       // 'lo', 'hi' are start indexes of lower / higher sub-list
+      // 'nitems' is # of items in lower 'lo' sub-list.
       int
       numInvMerge(int lo, int hi, int nitems)
       {
@@ -151,8 +160,10 @@ class Inversions
 
       // Implement the base case: Assert(n==2);
       int
-      numInvBase(int start, int n)
+      numInvBase(int start, int nitems)
       {
+         assert(nitems == 2);
+
          int rv = 0;
          // Flip the pair if needed, and count 1 inversion.
          if (numbers[start] > numbers[start + 1]) {
@@ -176,6 +187,7 @@ main(int argc, const char *argv[])
    data.load(argv[1]);
    data.dump();
 
-   cout << "# of inversions found: " << data.numInversions() << endl;
+   int nInvFound = data.numInversions();
+   cout << "# of inversions found: " << nInvFound << endl;
    data.dump();
 }
