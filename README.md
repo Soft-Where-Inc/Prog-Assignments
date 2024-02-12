@@ -14,6 +14,4 @@ $ git remote remove Self-Study
 ## NOTE: Test data files
 
 For various programs in this repo, all test data files, as needed, will be found
-in the Prog-Assignments-TestData/ dir, on my personal Mac where these programs
-were written.
-The test-data dir is a sibling of the top-level Projects/Prog-Assignments/ subdir.
+in the TestData/ dir, under each source dir for different sample programs.
