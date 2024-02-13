@@ -131,16 +131,20 @@ class Inversions
       // 'nitems_lo' is # of items in lower  'lo' sub-list.
       // 'nitems_hi' is # of items in higher 'hi' sub-list.
       int
-      numInvMerge(const int lo, const int hi, const int nitems_lo, const int nitems_hi)
+      numInvMerge(const int lo, const int hi, const int nitems_lo,
+                  const int nitems_hi)
       {
          assert((lo + nitems_lo) == hi);
+         // [l0, l1, l2, ..., li]  [h0, h1, h2, ..., hj]
          // Deal with simple case when lower-list is <= higher-list
+         // Case: li <= h0
          if (numbers[lo + nitems_lo - 1] <= numbers[hi]) {
             return 0;
          }
 
          // Deal with reverse case when all items in sorted upper-half are <= all
          // items in sorted lower-half
+         // Case: hj <= l0
          if (   (nitems_lo == nitems_hi)
              && (numbers[hi + nitems_lo - 1] <= numbers[lo])) {
             // Flip both sub-halves, in-place.
