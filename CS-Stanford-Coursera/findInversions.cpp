@@ -74,6 +74,18 @@ class Inversions
          return rv;
       }
 
+      // Verify that the contents are in sorted order
+      bool
+      verify(void)
+      {
+         for (auto ictr = 0; ictr < (nelements - 1); ictr++) {
+            if (numbers[ictr] > numbers[ictr + 1]) {
+                return false;
+            }
+         }
+         return true;
+      }
+
       // Debug: Dump contents of input array
       void
       dump(void)
@@ -220,5 +232,10 @@ main(int argc, const char *argv[])
 
    int nInvFound = data.numInversions();
    cout << "# of inversions found: " << nInvFound << endl;
-   data.dump();
+   if (!data.verify()) {
+       cout << "Error! Output array is unsorted: " << endl;
+       data.dump();
+       return 1;
+    }
+    return 0;
 }
