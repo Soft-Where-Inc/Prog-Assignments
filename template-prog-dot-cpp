@@ -1,0 +1,17 @@
+/*
+ * Implement <describe problem being implemented>
+ *
+ * Ref:
+ *
+ * History:
+ */
+
+#include <iostream>
+
+using namespace std;
+
+int
+main(int argc, char *argv[])
+{
+   printf("Hello World.\n");
+}

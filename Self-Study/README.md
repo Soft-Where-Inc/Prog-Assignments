@@ -1,4 +1,6 @@
-# Self-Study/Pthreads-Sync/README.md
+# Self-Study/README.md
+
+Tue 13.Feb.2024: CTCI/ Practice Exercises from Cracking The Coding Interview
 
 Sun 2.Apr.2023
 
