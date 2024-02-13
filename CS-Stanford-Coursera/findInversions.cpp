@@ -145,9 +145,7 @@ class Inversions
              && (numbers[hi + nitems_lo - 1] <= numbers[lo])) {
             // Flip both sub-halves, in-place.
             for (auto ictr = 0; ictr < nitems_lo; ictr++) {
-               auto tmp = numbers[lo + ictr];
-               numbers[lo + ictr] = numbers[hi + ictr];
-               numbers[hi + ictr] = tmp;
+               swap(lo + ictr, hi + ictr);
             }
             return (nitems_lo * nitems_lo);
          }
@@ -210,12 +208,21 @@ class Inversions
          int rv = 0;
          // Flip the pair if needed, and count 1 inversion.
          if (numbers[start] > numbers[start + 1]) {
-            auto tmp = numbers[start];
-            numbers[start] = numbers[start + 1];
-            numbers[start + 1] = tmp;
+            swap(start, start + 1);
             rv = 1;
          }
          return rv;
+      }
+
+      // Swap i'th item with j'th item in numbers[] array
+      void
+      swap(int i, int j) {
+        assert(i < nelements);
+        assert(j < nelements);
+
+        auto tmp = numbers[i];
+        numbers[i] = numbers[j];
+        numbers[j] = tmp;
       }
 };
 
