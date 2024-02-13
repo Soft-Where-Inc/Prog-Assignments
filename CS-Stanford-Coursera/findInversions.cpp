@@ -61,14 +61,16 @@ class Inversions
 
          cout << __func__ << ": start=0" << ", nelements=" << nelements << endl;
          int rv = 0;
-         int half = (nelements / 2);
+         int nitems_lo = (nelements / 2);
 
          // Recursive on left / right; sorting each half to count # inversions.
-         rv += numInvSort(0, half);
-         rv += numInvSort(half, (nelements - half));
+         rv += numInvSort(0, nitems_lo);
+
+         auto nitems_hi = (nelements - nitems_lo);
+         rv += numInvSort(nitems_lo, nitems_hi);
 
          // Merge the two sorted sub-lists
-         rv += numInvMerge(0, half, half);
+         rv += numInvMerge(0, nitems_lo, nitems_lo, nitems_hi);
          return rv;
       }
 
@@ -100,11 +102,13 @@ class Inversions
 
          // cout << __func__ << ": start=" << start << ", nitems=" << nitems << endl;
          int rv = 0;
-         int mid = (nitems / 2);
-         rv += numInvSort(start, mid);
-         rv += numInvSort((start + mid), (nitems - mid));
+         int nitems_lo = (nitems / 2);    // Same as # items in low-list, nitems_lo
+         rv += numInvSort(start, nitems_lo);
 
-         rv += numInvMerge(start, (start + mid), mid);
+         auto nitems_hi = (nitems - nitems_lo);
+         rv += numInvSort((start + nitems_lo), nitems_hi);
+
+         rv += numInvMerge(start, (start + nitems_lo), nitems_lo, nitems_hi);
          return rv;
       }
 
@@ -112,38 +116,43 @@ class Inversions
       // Implement merge-sort of 2 sub-lists, each of nitems length.
       // Count and return # of inversions found. Sort in-place.
       // 'lo', 'hi' are start indexes of lower / higher sub-list
-      // 'nitems' is # of items in lower 'lo' sub-list.
+      // 'nitems_lo' is # of items in lower  'lo' sub-list.
+      // 'nitems_hi' is # of items in higher 'hi' sub-list.
       int
-      numInvMerge(int lo, int hi, int nitems)
+      numInvMerge(const int lo, const int hi, const int nitems_lo, const int nitems_hi)
       {
-         // Assert((low + nitems) == hi);
+         assert((lo + nitems_lo) == hi);
          // Deal with simple case when lower-list is <= higher-list
-         if (numbers[lo + nitems - 1] <= numbers[hi]) {
+         if (numbers[lo + nitems_lo - 1] <= numbers[hi]) {
             return 0;
          }
 
          // Deal with reverse case when all items in sorted upper-half are <= all
          // items in sorted lower-half
-         if (numbers[hi + nitems - 1] <= numbers[lo]) {
+         if (   (nitems_lo == nitems_hi)
+             && (numbers[hi + nitems_lo - 1] <= numbers[lo])) {
             // Flip both sub-halves, in-place.
-            for (auto ictr = 0; ictr < nitems; ictr++) {
+            for (auto ictr = 0; ictr < nitems_lo; ictr++) {
                auto tmp = numbers[lo + ictr];
                numbers[lo + ictr] = numbers[hi + ictr];
                numbers[hi + ictr] = tmp;
             }
-            return (nitems * nitems);
+            return (nitems_lo * nitems_lo);
          }
 
          // Merge the two sub-lists, counting # inversions along the way
          int rv = 0;
-         int loitems = nitems;
          int *lop = &numbers[lo];
          int *hip = &numbers[hi];
 
-         while (loitems) {
+         // Process all items in lower-half. When this loop terminates, lop will
+         // be pointing to 1st element -after- end of lower-half; I.e., it will
+         // be positioned exactly at the 1st element of the upper-half.
+         auto nlower_half_items = nitems_lo;
+         while (nlower_half_items) {
             if (*lop <= *hip) {
                lop++;
-               loitems--;
+               nlower_half_items--;
             } else {
                // Value in upper-half is < value in lower-half. Flip them
                auto tmp = *lop;
@@ -151,10 +160,32 @@ class Inversions
                *hip = tmp;
                lop++;
                hip++;
-               loitems--;
+               nlower_half_items--;
                rv++;
             }
          }
+
+         // Verify loop termination condition
+         assert(lop == &(numbers[hi]));
+
+         // In case input # of elements was odd, upper-half should have one more
+         // item. Verify that and deal with remaining singleton item.
+         if (nitems_lo != nitems_hi) {
+            // cout << "nitems_lo=" << nitems_lo << ", nitems_hi=" << nitems_hi << endl;
+            assert(nitems_hi == (nitems_lo + 1));
+
+            auto lastp = &numbers[hi + nitems_hi - 1];
+
+            // If prev-item is larger than current-item, flip the two items.
+            while ((lastp > lop) && (*(lastp - 1) > *lastp)) {
+                auto tmp = *lastp;
+                *lastp = *(lastp - 1);
+                *(lastp - 1) = tmp;
+                rv++;
+                lastp--;
+            }
+         }
+
          return rv;
       }
 
