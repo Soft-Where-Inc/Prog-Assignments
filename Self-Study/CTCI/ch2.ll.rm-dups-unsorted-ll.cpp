@@ -12,8 +12,30 @@
 
 #include <iostream>
 #include <set>
+#include <random>
 
 using namespace std;
+
+const int One_M     = (1000 * 1000);
+
+
+// ----------------------------------------------------------------------------
+// Random-generator class.
+// Ref: Stroustrup's C++ book, 2nd Ed., Sec. 14.5, Pgs. 191.
+// ----------------------------------------------------------------------------
+class Rand_int
+{
+  public:
+    Rand_int(int low, int high): dist{low, high} { }
+
+    int operator()() { return dist(rand_gen); }
+
+    void seed(int s) { rand_gen.seed(s); }
+
+  private:
+    default_random_engine rand_gen;
+    uniform_int_distribution<> dist;
+};
 
 // ----------------------------------------------------------------------------
 // Definition of node in a singly-linked list
@@ -169,6 +191,8 @@ void test_delete_inner_node(void);
 void test_delete_last_node(void);
 void test_eliminate_one_dup(void);
 void test_eliminate_all_but_one_dups(void);
+void test_random_inserts_eliminate_dups(const int nitems);
+void test_inserts_with_half_dups_eliminate_dups(const int nitems);
 
 /*
  * main() and test cases begin here ...
@@ -184,6 +208,14 @@ main(int argc, char *argv[])
 
     test_eliminate_one_dup();
     test_eliminate_all_but_one_dups();
+
+    test_random_inserts_eliminate_dups(100);
+    test_random_inserts_eliminate_dups(   1 * 1000);
+    test_random_inserts_eliminate_dups(  10 * 1000);
+    test_random_inserts_eliminate_dups( 100 * 1000);
+
+    // For very large # of inserts, generate half # of items as dups.
+    test_inserts_with_half_dups_eliminate_dups(100 * 1000);
 }
 
 void
@@ -224,7 +256,8 @@ test_delete_inner_node(void)
     list.printList();
 }
 
-void test_eliminate_one_dup(void)
+void
+test_eliminate_one_dup(void)
 {
     cout << __func__ << endl;
     LinkedList list;
@@ -239,7 +272,8 @@ void test_eliminate_one_dup(void)
     list.printList();
 }
 
-void test_eliminate_all_but_one_dups(void)
+void
+test_eliminate_all_but_one_dups(void)
 {
     cout << __func__ << endl;
     LinkedList list;
@@ -251,4 +285,65 @@ void test_eliminate_all_but_one_dups(void)
 
     assert(num_eliminated == (nentries - 1));
     list.printList();
+}
+
+/*
+ * Stress test: Insert large # of randomly generated data. Count the # of
+ * unique values inserted, while inserting. Eliminate duplicates and verify
+ * counts.
+ */
+void
+test_random_inserts_eliminate_dups(const int nitems_to_insert)
+{
+    int nunique_items = 0;
+    set<int> unique_items;
+    Rand_int rnd{-One_M, One_M};    // Include -ve #s also in random range
+
+    cout << __func__ << ": nitems_to_insert=" << nitems_to_insert;
+    LinkedList list;
+    for (auto ictr = 0; ictr < nitems_to_insert; ictr++) {
+        const int newval = rnd();
+        list.appendToTail(newval);
+
+        if (unique_items.find(newval) == unique_items.end()) {
+            unique_items.insert(newval);
+            nunique_items++;
+        }
+    }
+
+    cout << ", unique=" << nunique_items << endl;
+
+    const int ndeleted = list.dupEliminate();
+    assert(ndeleted == (nitems_to_insert - nunique_items));
+    cout << " ... Test deleted=" << ndeleted << " items." << endl;
+}
+
+/*
+ * Stress test: Insert large # of sequentially generated data. Count the # of
+ * unique values inserted, while inserting. Eliminate duplicates and verify
+ * counts.
+ */
+void
+test_inserts_with_half_dups_eliminate_dups(const int nitems_to_insert)
+{
+
+    cout << __func__ << ": nitems_to_insert=" << nitems_to_insert;
+    LinkedList list;
+
+    const int nunique_items = (nitems_to_insert/2);
+    // First insert half the # of items, sequentially generated data.
+    for (auto ictr = 0; ictr < nunique_items; ictr++) {
+        list.appendToTail(ictr);
+    }
+
+    // Insert another half, in decreasing sequential order.
+    for (auto ictr = (nunique_items - 1); ictr >= 0; ictr--) {
+        list.appendToTail(ictr);
+    }
+
+    cout << ", unique=" << nunique_items << endl;
+
+    const int ndeleted = list.dupEliminate();
+    cout << " ... Test deleted=" << ndeleted << " items." << endl;
+    assert(ndeleted == (nitems_to_insert - nunique_items));
 }
