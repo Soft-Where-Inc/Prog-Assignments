@@ -11,6 +11,7 @@
  */
 
 #include <iostream>
+#include <set>
 
 using namespace std;
 
@@ -64,6 +65,9 @@ class LinkedList
     // Delete the 1st node found given its value.
     bool deleteNode(const int d);
 
+    // Eliminate duplicate items, return # of dup-items eliminated
+    int dupEliminate(void);
+
     // Print the linked list.
     void printList();
 };
@@ -106,6 +110,38 @@ LinkedList::deleteNode(const int d) {
 }
 
 // ----------------------------------------------------
+// Eliminate duplicate values from linked list.
+// Returns: The # of duplicates items eliminated.
+int
+LinkedList::dupEliminate() {
+
+    int neliminated = 0;
+    set<int> unique_items;
+
+    Node **nextp = &this->head;
+
+    while (*nextp) {
+        Node *nodep = *nextp;
+
+        // Insert new item into set if it's not found
+        if (unique_items.find(nodep->data) == unique_items.end()) {
+            unique_items.insert(nodep->data);
+
+            nextp = &nodep->next;
+        } else {
+            // Relink past the node being deleted
+            *nextp = nodep->next;
+
+            // Detach node from linked list
+            nodep->next = NULL;
+            delete nodep;
+            neliminated++;
+        }
+    }
+    return neliminated;
+}
+
+// ----------------------------------------------------
 void
 LinkedList::printList() {
     if (this->head == NULL) {
@@ -131,6 +167,8 @@ void test_append_n_entries(void);
 void test_delete_1st_node(void);
 void test_delete_inner_node(void);
 void test_delete_last_node(void);
+void test_eliminate_one_dup(void);
+void test_eliminate_all_but_one_dups(void);
 
 /*
  * main() and test cases begin here ...
@@ -143,6 +181,9 @@ main(int argc, char *argv[])
     test_print_empty_list();
     test_append_n_entries();
     test_delete_inner_node();
+
+    test_eliminate_one_dup();
+    test_eliminate_all_but_one_dups();
 }
 
 void
@@ -180,5 +221,34 @@ test_delete_inner_node(void)
     // Node should not be found.
     rv = list.deleteNode(4);
     assert(rv == false);
+    list.printList();
+}
+
+void test_eliminate_one_dup(void)
+{
+    cout << __func__ << endl;
+    LinkedList list;
+    list.appendToTail(1);
+    list.appendToTail(4);
+    list.appendToTail(1);
+    list.appendToTail(3);
+
+    int num_eliminated = list.dupEliminate();
+
+    assert(num_eliminated == 1);
+    list.printList();
+}
+
+void test_eliminate_all_but_one_dups(void)
+{
+    cout << __func__ << endl;
+    LinkedList list;
+    const int nentries = 5;
+    for (auto ictr = 0; ictr < nentries; ictr++) {
+        list.appendToTail(1);
+    }
+    int num_eliminated = list.dupEliminate();
+
+    assert(num_eliminated == (nentries - 1));
     list.printList();
 }
