@@ -55,6 +55,7 @@ void test_mkTree_5nodes(void);
 void test_mkTree_7nodes(void);
 void test_mkTree_8nodes(void);
 void test_mkTree_9nodes(void);
+void test_freeTree_1node(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -65,9 +66,17 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_mkTree_1node"     , test_mkTree_1node }
+                          { "test_prNode"           , test_prNode }
+                        , { "test_mkTree_1node"     , test_mkTree_1node }
+                        , { "test_freeTree_1node"   , test_freeTree_1node }
                         , { "test_mkTree_3nodes"    , test_mkTree_3nodes }
+                        , { "test_mkTree_5nodes"    , test_mkTree_5nodes }
+                        , { "test_mkTree_7nodes"    , test_mkTree_7nodes }
+                        , { "test_mkTree_8nodes"    , test_mkTree_8nodes }
+                        , { "test_mkTree_9nodes"    , test_mkTree_9nodes }
                       };
+
+const int Num_Test_fns = ARRAYSIZE(Test_fns);
 
 // Test start / end info-msg macros
 #define TEST_START()  printf("%s ", __func__)
@@ -88,13 +97,9 @@ main(int argc, char *argv[])
 
         test_this();
         // test_msg(hello_msg);
-        test_prNode();
-        test_mkTree_1node();
-        test_mkTree_3nodes();
-        test_mkTree_5nodes();
-        test_mkTree_7nodes();
-        test_mkTree_8nodes();
-        test_mkTree_9nodes();
+        for (int tctr = 0; tctr < Num_Test_fns; tctr++) {
+            Test_fns[tctr].tfn();
+        }
 
     } else if (strncmp("--help", argv[1], strlen("--help")) == 0) {
         printf(Usage, argv[0]);
@@ -103,7 +108,7 @@ main(int argc, char *argv[])
 
         // Execute the named test-function, if it's a supported test-function
         int tctr = 0;
-        for (; tctr < ARRAYSIZE(Test_fns); tctr++) {
+        for (; tctr < Num_Test_fns; tctr++) {
             if (!strcmp(Test_fns[tctr].tfn_name, argv[1])) {
                 Test_fns[tctr].tfn();
                 break;
@@ -223,6 +228,31 @@ mkTree(Node *qNodes[], int qsize, int *values, int nitems)
 
 /*
  * -----------------------------------------------------------------------------
+ * freeTree() - Routine to free allocated for all nodes in a tree.
+ *
+ * Implement a post-order traversal of all nodes in the tree, so that we free
+ * the memory for all nodes in the left sub-tree, then the right sub-tree
+ * -AND THEN- free the memory for the input 'nodep'.
+ * -----------------------------------------------------------------------------
+ */
+void
+freeTree(Node **nodep)
+{
+    Node *node = *nodep;
+    if (node == NULL) {
+        return;
+    }
+    if (node->left) {
+        freeTree(&node->left);
+    }
+    if (node->right) {
+        freeTree(&node->right);
+    }
+    freeNode(nodep);
+}
+
+/*
+ * -----------------------------------------------------------------------------
  * prTree() - Tree printing routine.
  * -----------------------------------------------------------------------------
  */
@@ -320,6 +350,20 @@ test_mkTree_1node(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_freeTree_1node(void)
+{
+    TEST_START();
+
+    int values[] = {42};
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    freeTree(&rootp);
+    assert(rootp == NULL);
+    freeTree(&rootp);
     TEST_END();
 }
 
@@ -333,6 +377,7 @@ test_mkTree_3nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
     TEST_END();
 }
 
@@ -346,6 +391,7 @@ test_mkTree_5nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
     TEST_END();
 }
 
@@ -361,6 +407,7 @@ test_mkTree_7nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
     TEST_END();
 }
 
@@ -375,6 +422,7 @@ test_mkTree_8nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
     TEST_END();
 }
 void
@@ -388,5 +436,6 @@ test_mkTree_9nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
     TEST_END();
 }
