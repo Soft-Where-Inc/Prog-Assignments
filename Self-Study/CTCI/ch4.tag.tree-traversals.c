@@ -4,7 +4,8 @@
  *
  * Ref:
  *
- * Usage: gcc -o ch4.tag.tree-traversals ch4.tag.tree-traversals.c
+ * Usage: $ gcc -o ch4.tag.tree-traversals ch4.tag.tree-traversals.c
+ *        $ leaks -atExit -- ./ch4.tag.tree-traversals
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -55,12 +56,33 @@ void test_mkTree_7nodes(void);
 void test_mkTree_8nodes(void);
 void test_mkTree_9nodes(void);
 
+// -----------------------------------------------------------------------------
+// List of test functions one can invoke from the command-line
+typedef struct test_fns
+{
+    const char *    tfn_name;
+    void            (*tfn)(void);
+} TEST_FNS;
+
+TEST_FNS Test_fns[] = {
+                          { "test_mkTree_1node"     , test_mkTree_1node }
+                        , { "test_mkTree_3nodes"    , test_mkTree_3nodes }
+                      };
+
+// Test start / end info-msg macros
+#define TEST_START()  printf("%s ", __func__)
+#define TEST_END()    printf(" ...OK\n")
+
+/*
+ * -----------------------------------------------------------------------------
+ */
 int
 main(int argc, char *argv[])
 {
     const char *hello_msg = "Hello World";
     printf("%s: %s. (argc=%d)\n", argv[0], hello_msg, argc);
 
+    int rv = 0;
     // Run all test cases if no args are provided.
     if (argc == 1) {
 
@@ -76,13 +98,27 @@ main(int argc, char *argv[])
 
     } else if (strncmp("--help", argv[1], strlen("--help")) == 0) {
         printf(Usage, argv[0]);
-        return 0;
+        return rv;
     } else if (strncmp("test_", argv[1], strlen("test_")) == 0) {
+
+        // Execute the named test-function, if it's a supported test-function
+        int tctr = 0;
+        for (; tctr < ARRAYSIZE(Test_fns); tctr++) {
+            if (!strcmp(Test_fns[tctr].tfn_name, argv[1])) {
+                Test_fns[tctr].tfn();
+                break;
+            }
+        }
+        if (tctr == ARRAYSIZE(Test_fns)) {
+            printf("Warning: Named test-function '%s' not found.\n", argv[1]);
+            rv = 1;
+        }
     } else {
         printf("Unknown argument: '%s'\n", argv[1]);
+        rv = 1;
     }
 
-    return 0;
+    return rv;
 }
 
 // **** Node manipulation routines ****
@@ -245,79 +281,79 @@ prArray(int *arr, int size)
 void
 test_this(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     assert(1 == 1);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 void
 test_msg(const char *msg)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     const char *expmsg = "Hello World";
     assert(strncmp(expmsg, msg, strlen(expmsg)) == 0);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 // Verifies mkNode(), prNode() and freeNode()
 void
 test_prNode(void)
 {
-    printf("%s ", __func__);
+    TEST_START();
     Node *np = mkNode(5);
     assert(np != NULL);
     prNode(np);
     freeNode(&np);
     assert(np == NULL);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 // Basic verification of tree construction and print of 1-node tree
 void
 test_mkTree_1node(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42};
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 void
 test_mkTree_3nodes(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42, 22, 33};
     PRARRAY(values);
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 void
 test_mkTree_5nodes(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42, 22, 33, 99, 112};
     PRARRAY(values);
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 
 void
 test_mkTree_7nodes(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42, 22, 33, 99, 112, 4, 55};
     assert(ARRAYSIZE(values) == 7);
@@ -325,13 +361,13 @@ test_mkTree_7nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
 
 void
 test_mkTree_8nodes(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42, 22, 33, 99, 112, 4, 55, 66};
     assert(ARRAYSIZE(values) == 8);
@@ -339,12 +375,12 @@ test_mkTree_8nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
 void
 test_mkTree_9nodes(void)
 {
-    printf("%s", __func__);
+    TEST_START();
 
     int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
     assert(ARRAYSIZE(values) == 9);
@@ -352,5 +388,5 @@ test_mkTree_9nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
-    printf(" ... OK\n");
+    TEST_END();
 }
