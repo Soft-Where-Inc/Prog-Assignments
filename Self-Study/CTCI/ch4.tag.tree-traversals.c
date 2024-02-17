@@ -56,7 +56,9 @@ void mkTree(Node *qOfNodes[], int qsize, int *values, int nitems);
 
 void prTree(Node *rootp);
 void prTreeTraverse(Node *rootp, traversal_t traverse);
+void prTreeInorder(Node *rootp, uint32 level, char nodeType);
 void prTreePreorder(Node *rootp, uint32 level, char nodeType);
+void prTreePostorder(Node *rootp, uint32 level, char nodeType);
 void prNodeLevel(Node *rootp, uint32 level, char nodeType);
 
 void prArray(int *arr, int size);
@@ -71,6 +73,8 @@ void test_mkTree_8nodes(void);
 void test_mkTree_9nodes(void);
 void test_freeTree_1node(void);
 void test_mkTree_random_10_nodes(void);
+void test_prTree_9nodes_inorder(void);
+void test_prTree_9nodes_postorder(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -90,6 +94,8 @@ TEST_FNS Test_fns[] = {
                 , { "test_mkTree_8nodes"                , test_mkTree_8nodes }
                 , { "test_mkTree_9nodes"                , test_mkTree_9nodes }
                 , { "test_mkTree_random_10_nodes"       , test_mkTree_random_10_nodes }
+                , { "test_prTree_9nodes_inorder"        , test_prTree_9nodes_inorder }
+                , { "test_prTree_9nodes_postorder"      , test_prTree_9nodes_postorder }
 };
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
@@ -294,12 +300,29 @@ prTreeTraverse(Node *rootp, traversal_t traverse)
     switch(traverse)
     {
       case PR_TREE_INORDER:
+          prTreeInorder(rootp, 0, 'R');
           break;
       case PR_TREE_PREORDER:
           prTreePreorder(rootp, 0, 'R');
           break;
       case PR_TREE_POSTORDER:
+          prTreePostorder(rootp, 0, 'R');
           break;
+    }
+}
+
+void
+prTreeInorder(Node *nodep, uint32 level, char nodeType)
+{
+    assert(nodep != NULL);
+
+    if (nodep->left) {
+        prTreeInorder(nodep->left, (level + 1), 'l');
+    }
+    prNodeLevel(nodep, level, nodeType);
+
+    if (nodep->right) {
+        prTreeInorder(nodep->right, (level + 1), 'r');
     }
 }
 
@@ -315,6 +338,20 @@ prTreePreorder(Node *nodep, uint32 level, char nodeType)
     if (nodep->right) {
         prTreePreorder(nodep->right, (level + 1), 'r');
     }
+}
+
+void
+prTreePostorder(Node *nodep, uint32 level, char nodeType)
+{
+    assert(nodep != NULL);
+
+    if (nodep->left) {
+        prTreePostorder(nodep->left, (level + 1), 'l');
+    }
+    if (nodep->right) {
+        prTreePostorder(nodep->right, (level + 1), 'r');
+    }
+    prNodeLevel(nodep, level, nodeType);
 }
 
 void
@@ -493,6 +530,37 @@ test_mkTree_random_10_nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_prTree_9nodes_inorder(void)
+{
+    TEST_START();
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
+    assert(ARRAYSIZE(values) == 9);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTreeTraverse(rootp, PR_TREE_INORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+
+void
+test_prTree_9nodes_postorder(void)
+{
+    TEST_START();
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
+    assert(ARRAYSIZE(values) == 9);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTreeTraverse(rootp, PR_TREE_POSTORDER);
     freeTree(&rootp);
     TEST_END();
 }
