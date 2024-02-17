@@ -41,6 +41,9 @@ typedef struct node {
 #define RAND_INT_RANGE(lower, upper)                \
         ((rand() % (upper - lower + 1)) + lower)
 
+// Tree-printing traversal orders
+typedef enum { PR_TREE_INORDER, PR_TREE_PREORDER, PR_TREE_POSTORDER } traversal_t;
+
 // Function Prototypes
 Node *mkNode(const int val);
 void freeNode(Node **np);
@@ -52,7 +55,8 @@ Node *makeTree(int *values, int nitems);
 void mkTree(Node *qOfNodes[], int qsize, int *values, int nitems);
 
 void prTree(Node *rootp);
-void prTreeRecurse(Node *rootp, uint32 level, char nodeType);
+void prTreeTraverse(Node *rootp, traversal_t traverse);
+void prTreePreorder(Node *rootp, uint32 level, char nodeType);
 void prNodeLevel(Node *rootp, uint32 level, char nodeType);
 
 void prArray(int *arr, int size);
@@ -245,7 +249,7 @@ mkTree(Node *qNodes[], int qsize, int *values, int nitems)
  * Implement a post-order traversal of all nodes in the tree, so that we free
  * the memory for all nodes in the left sub-tree, then the right sub-tree
  * -AND THEN- free the memory for the input 'nodep'.
- * --------------Test_fns---------------------------------------------------------------
+ * -----------------------------------------------------------------------------
  */
 void
 freeTree(Node **nodep)
@@ -265,7 +269,7 @@ freeTree(Node **nodep)
 
 /*
  * -----------------------------------------------------------------------------
- * prTree() - Tree printing routine.
+ * prTree() - Tree printing routine(s). Default is preorder traversal.
  * -----------------------------------------------------------------------------
  */
 void
@@ -274,21 +278,42 @@ prTree(Node *rootp)
     if (!rootp)
         return;
 
-    printf("\nTree at rootp=%p\n", rootp);
-    prTreeRecurse(rootp, 0, 'R');
+    prTreeTraverse(rootp, PR_TREE_PREORDER);
 }
 
 void
-prTreeRecurse(Node *nodep, uint32 level, char nodeType)
+prTreeTraverse(Node *rootp, traversal_t traverse)
+{
+    if (!rootp) {
+        return;
+    }
+    const char *traverse_type = ((traverse == PR_TREE_INORDER) ? "Inorder" :
+                                 (traverse == PR_TREE_PREORDER) ? "Preorder"
+                                                                : "Postorder");
+    printf("\nTree at rootp=%p, %s traversal\n", rootp, traverse_type);
+    switch(traverse)
+    {
+      case PR_TREE_INORDER:
+          break;
+      case PR_TREE_PREORDER:
+          prTreePreorder(rootp, 0, 'R');
+          break;
+      case PR_TREE_POSTORDER:
+          break;
+    }
+}
+
+void
+prTreePreorder(Node *nodep, uint32 level, char nodeType)
 {
     assert(nodep != NULL);
 
     prNodeLevel(nodep, level, nodeType);
     if (nodep->left) {
-        prTreeRecurse(nodep->left, (level + 1), 'l');
+        prTreePreorder(nodep->left, (level + 1), 'l');
     }
     if (nodep->right) {
-        prTreeRecurse(nodep->right, (level + 1), 'r');
+        prTreePreorder(nodep->right, (level + 1), 'r');
     }
 }
 
