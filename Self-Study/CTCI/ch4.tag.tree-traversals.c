@@ -16,6 +16,7 @@
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <math.h>
 
 const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
@@ -42,7 +43,11 @@ typedef struct node {
         ((rand() % (upper - lower + 1)) + lower)
 
 // Tree-printing traversal orders
-typedef enum { PR_TREE_INORDER, PR_TREE_PREORDER, PR_TREE_POSTORDER } traversal_t;
+typedef enum {
+      PR_TREE_INORDER
+    , PR_TREE_PREORDER
+    , PR_TREE_POSTORDER
+    , PR_TREE_LEVELORDER } traversal_t;
 
 // Function Prototypes
 Node *mkNode(const int val);
@@ -59,7 +64,9 @@ void prTreeTraverse(Node *rootp, traversal_t traverse);
 void prTreeInorder(Node *rootp, uint32 level, char nodeType);
 void prTreePreorder(Node *rootp, uint32 level, char nodeType);
 void prTreePostorder(Node *rootp, uint32 level, char nodeType);
+void prTreeLevelorder(Node *rootp, uint32 level, char nodeType);
 void prNodeLevel(Node *rootp, uint32 level, char nodeType);
+int  numLevels(Node *rootp);
 
 void prArray(int *arr, int size);
 void test_this(void);
@@ -75,6 +82,8 @@ void test_freeTree_1node(void);
 void test_mkTree_random_10_nodes(void);
 void test_prTree_9nodes_inorder(void);
 void test_prTree_9nodes_postorder(void);
+void test_numLevels_10_nodes(void);
+void test_numLevels_random_128_nodes(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -96,6 +105,8 @@ TEST_FNS Test_fns[] = {
                 , { "test_mkTree_random_10_nodes"       , test_mkTree_random_10_nodes }
                 , { "test_prTree_9nodes_inorder"        , test_prTree_9nodes_inorder }
                 , { "test_prTree_9nodes_postorder"      , test_prTree_9nodes_postorder }
+                , { "test_numLevels_10_nodes"           , test_numLevels_10_nodes }
+                , { "test_numLevels_random_128_nodes"   , test_numLevels_random_128_nodes }
 };
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
@@ -293,9 +304,10 @@ prTreeTraverse(Node *rootp, traversal_t traverse)
     if (!rootp) {
         return;
     }
-    const char *traverse_type = ((traverse == PR_TREE_INORDER) ? "Inorder" :
-                                 (traverse == PR_TREE_PREORDER) ? "Preorder"
-                                                                : "Postorder");
+    const char *traverse_type = ((traverse == PR_TREE_INORDER)   ? "Inorder" :
+                                 (traverse == PR_TREE_PREORDER)  ? "Preorder" :
+                                 (traverse == PR_TREE_POSTORDER) ? "Postorder"
+                                                                 : "Level-order");
     printf("\nTree at rootp=%p, %s traversal\n", rootp, traverse_type);
     switch(traverse)
     {
@@ -307,6 +319,9 @@ prTreeTraverse(Node *rootp, traversal_t traverse)
           break;
       case PR_TREE_POSTORDER:
           prTreePostorder(rootp, 0, 'R');
+          break;
+      case PR_TREE_LEVELORDER:
+          prTreeLevelorder(rootp, 0, 'R');
           break;
     }
 }
@@ -354,6 +369,17 @@ prTreePostorder(Node *nodep, uint32 level, char nodeType)
     prNodeLevel(nodep, level, nodeType);
 }
 
+/*
+ * Driver routine to recurse through tree and print nodes in level-order.
+ * At each level, we have to maintain a queue of nodes as found at that level.
+ * As we don't know the depth of the tree, do a quick traversal to find # of levels.
+ */
+void
+prTreeLevelorder(Node *nodep, uint32 level, char nodeType)
+{
+    assert(nodep != NULL);
+}
+
 void
 prNodeLevel(Node *nodep, uint32 level, char nodeType)
 {
@@ -366,6 +392,26 @@ prNodeLevel(Node *nodep, uint32 level, char nodeType)
                                : "  "),
               nodep->data,
               nodep->left, nodep->right);
+}
+
+/*
+ * Traverse left-side of the root to identify # of levels of the tree.
+ * We assume that tree construction was done such that left child is built
+ * before right child.
+ */
+int
+numLevels(Node *rootp)
+{
+    int rv = -1;
+    if (!rootp) {
+        return rv;
+    }
+    rv = 0;
+    while (rootp->left) {
+        rv++;
+        rootp = rootp->left;
+    }
+    return rv;
 }
 
 // **** Helper functions ****
@@ -561,6 +607,43 @@ test_prTree_9nodes_postorder(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTreeTraverse(rootp, PR_TREE_POSTORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_numLevels_10_nodes(void)
+{
+    TEST_START();
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900, 1000};
+    assert(ARRAYSIZE(values) == 10);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    const int expNumLevels = 3;
+    assert(numLevels(rootp) == expNumLevels);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_numLevels_random_128_nodes(void)
+{
+    TEST_START();
+
+    int numNodes = 128;
+    int values[numNodes];
+    RAND_INIT();
+    for (int ictr = 0; ictr < numNodes; ictr++) {
+        values[ictr] = NEW_RAND();
+    }
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+
+    // 128 nodes in a binary tree: [ 2**(l + 1) - 1] = 128
+    const int expNumLevels = log2(numNodes * 1.0);
+    int levels = numLevels(rootp);
+    printf(" Exp # of levels=%d, Actual # of levels=%d", expNumLevels, levels);
+    assert(numLevels(rootp) == expNumLevels);
     freeTree(&rootp);
     TEST_END();
 }
