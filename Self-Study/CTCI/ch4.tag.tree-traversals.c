@@ -16,6 +16,8 @@
 
 const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
+typedef unsigned int uint32;
+
 /*
  * Definition of basic tree Node struct.
  */
@@ -26,6 +28,7 @@ typedef struct node {
 } Node;
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
+#define PRARRAY(arr) prArray((arr), ARRAYSIZE(arr))
 
 // Function Prototypes
 Node *mkNode(const int val);
@@ -38,11 +41,19 @@ Node *makeTree(int *values, int nitems);
 void mkTree(Node *qOfNodes[], int qsize, int *values, int nitems);
 
 void prTree(Node *rootp);
+void prTreeRecurse(Node *rootp, uint32 level, char nodeType);
+void prNodeLevel(Node *rootp, uint32 level, char nodeType);
 
+void prArray(int *arr, int size);
 void test_this(void);
 void test_msg(const char *msg);
 void test_prNode(void);
 void test_mkTree_1node(void);
+void test_mkTree_3nodes(void);
+void test_mkTree_5nodes(void);
+void test_mkTree_7nodes(void);
+void test_mkTree_8nodes(void);
+void test_mkTree_9nodes(void);
 
 int
 main(int argc, char *argv[])
@@ -52,10 +63,17 @@ main(int argc, char *argv[])
 
     // Run all test cases if no args are provided.
     if (argc == 1) {
+
         test_this();
         // test_msg(hello_msg);
         test_prNode();
         test_mkTree_1node();
+        test_mkTree_3nodes();
+        test_mkTree_5nodes();
+        test_mkTree_7nodes();
+        test_mkTree_8nodes();
+        test_mkTree_9nodes();
+
     } else if (strncmp("--help", argv[1], strlen("--help")) == 0) {
         printf(Usage, argv[0]);
         return 0;
@@ -178,13 +196,48 @@ prTree(Node *rootp)
     if (!rootp)
         return;
 
-    printf("[%d]\n", rootp->data);
-    if (rootp->left) {
-        prTree(rootp->left);
+    printf("\nTree at rootp=%p\n", rootp);
+    prTreeRecurse(rootp, 0, 'R');
+}
+
+void
+prTreeRecurse(Node *nodep, uint32 level, char nodeType)
+{
+    assert(nodep != NULL);
+
+    prNodeLevel(nodep, level, nodeType);
+    if (nodep->left) {
+        prTreeRecurse(nodep->left, (level + 1), 'l');
     }
-    if (rootp->right) {
-        prTree(rootp->right);
+    if (nodep->right) {
+        prTreeRecurse(nodep->right, (level + 1), 'r');
     }
+}
+
+void
+prNodeLevel(Node *nodep, uint32 level, char nodeType)
+{
+    assert(nodep != NULL);
+    printf("[%p lvl=%d:%s:val=%d [lc=%p, rc=%p]\n",
+            nodep, level,
+            ((nodeType) == 'R' ? "R " :
+             (nodeType) == 'l' ? "<-" :
+             (nodeType) == 'r' ? "->"
+                               : "  "),
+              nodep->data,
+              nodep->left, nodep->right);
+}
+
+// **** Helper functions ****
+void
+prArray(int *arr, int size)
+{
+    printf(" [ ");
+    for (int ictr = 0; ictr < size; ictr++) {
+        printf("%d ", arr[ictr]);
+    }
+    printf("]\n");
+
 }
 
 // **** Test cases ****
@@ -228,7 +281,74 @@ test_mkTree_1node(void)
     printf("%s", __func__);
 
     int values[] = {42};
-    assert(1 == 1);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    printf(" ... OK\n");
+}
+
+void
+test_mkTree_3nodes(void)
+{
+    printf("%s", __func__);
+
+    int values[] = {42, 22, 33};
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    printf(" ... OK\n");
+}
+
+void
+test_mkTree_5nodes(void)
+{
+    printf("%s", __func__);
+
+    int values[] = {42, 22, 33, 99, 112};
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    printf(" ... OK\n");
+}
+
+
+void
+test_mkTree_7nodes(void)
+{
+    printf("%s", __func__);
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55};
+    assert(ARRAYSIZE(values) == 7);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    printf(" ... OK\n");
+}
+
+void
+test_mkTree_8nodes(void)
+{
+    printf("%s", __func__);
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66};
+    assert(ARRAYSIZE(values) == 8);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    printf(" ... OK\n");
+}
+void
+test_mkTree_9nodes(void)
+{
+    printf("%s", __func__);
+
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
+    assert(ARRAYSIZE(values) == 9);
+    PRARRAY(values);
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
     prTree(rootp);
