@@ -4,7 +4,7 @@
  *
  * Ref:
  *
- * Usage: gcc -o ch4.tag.tree-traversals ch4.tag.tree-traversals.c
+ * Usage: gcc -o ch4.tag.tree-template-prog ch4.tag.tree-template-prog.c
  *
  * History:
  * -----------------------------------------------------------------------------
