@@ -3,6 +3,7 @@
  * Implement basic Tree Traversal algorithms
  *
  * Ref:
+ * - https://www.geeksforgeeks.org/generating-random-number-range-c/
  *
  * Usage: $ gcc -o ch4.tag.tree-traversals ch4.tag.tree-traversals.c
  *        $ leaks -atExit -- ./ch4.tag.tree-traversals
@@ -14,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
@@ -30,6 +32,14 @@ typedef struct node {
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
 #define PRARRAY(arr) prArray((arr), ARRAYSIZE(arr))
+
+/*
+ * Basic random int32 generation support.
+ */
+#define RAND_INIT() srand(time(0))
+#define NEW_RAND()  RAND_INT_RANGE(0, 100)
+#define RAND_INT_RANGE(lower, upper)                \
+        ((rand() % (upper - lower + 1)) + lower)
 
 // Function Prototypes
 Node *mkNode(const int val);
@@ -56,6 +66,7 @@ void test_mkTree_7nodes(void);
 void test_mkTree_8nodes(void);
 void test_mkTree_9nodes(void);
 void test_freeTree_1node(void);
+void test_mkTree_random_10_nodes(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -66,15 +77,16 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_prNode"           , test_prNode }
-                        , { "test_mkTree_1node"     , test_mkTree_1node }
-                        , { "test_freeTree_1node"   , test_freeTree_1node }
-                        , { "test_mkTree_3nodes"    , test_mkTree_3nodes }
-                        , { "test_mkTree_5nodes"    , test_mkTree_5nodes }
-                        , { "test_mkTree_7nodes"    , test_mkTree_7nodes }
-                        , { "test_mkTree_8nodes"    , test_mkTree_8nodes }
-                        , { "test_mkTree_9nodes"    , test_mkTree_9nodes }
-                      };
+                  { "test_prNode"                       , test_prNode }
+                , { "test_mkTree_1node"                 , test_mkTree_1node }
+                , { "test_freeTree_1node"               , test_freeTree_1node }
+                , { "test_mkTree_3nodes"                , test_mkTree_3nodes }
+                , { "test_mkTree_5nodes"                , test_mkTree_5nodes }
+                , { "test_mkTree_7nodes"                , test_mkTree_7nodes }
+                , { "test_mkTree_8nodes"                , test_mkTree_8nodes }
+                , { "test_mkTree_9nodes"                , test_mkTree_9nodes }
+                , { "test_mkTree_random_10_nodes"       , test_mkTree_random_10_nodes }
+};
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
 
@@ -233,7 +245,7 @@ mkTree(Node *qNodes[], int qsize, int *values, int nitems)
  * Implement a post-order traversal of all nodes in the tree, so that we free
  * the memory for all nodes in the left sub-tree, then the right sub-tree
  * -AND THEN- free the memory for the input 'nodep'.
- * -----------------------------------------------------------------------------
+ * --------------Test_fns---------------------------------------------------------------
  */
 void
 freeTree(Node **nodep)
@@ -425,6 +437,7 @@ test_mkTree_8nodes(void)
     freeTree(&rootp);
     TEST_END();
 }
+
 void
 test_mkTree_9nodes(void)
 {
@@ -432,6 +445,25 @@ test_mkTree_9nodes(void)
 
     int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
     assert(ARRAYSIZE(values) == 9);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTree(rootp);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkTree_random_10_nodes(void)
+{
+    TEST_START();
+
+    int numNodes = 10;
+    int values[numNodes];
+    RAND_INIT();
+    for (int ictr = 0; ictr < numNodes; ictr++) {
+        values[ictr] = NEW_RAND();
+    }
     PRARRAY(values);
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     assert(rootp);
