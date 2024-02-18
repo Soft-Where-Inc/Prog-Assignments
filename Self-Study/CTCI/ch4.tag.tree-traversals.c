@@ -65,6 +65,7 @@ void prTreeInorder(Node *rootp, uint32 level, char nodeType);
 void prTreePreorder(Node *rootp, uint32 level, char nodeType);
 void prTreePostorder(Node *rootp, uint32 level, char nodeType);
 void prTreeLevelorder(Node *rootp, uint32 level, char nodeType);
+int  prTree_bfs_Levelorder(Node *qNodes[], int qsize);
 void prNodeLevel(Node *rootp, uint32 level, char nodeType);
 int  numLevels(Node *rootp);
 
@@ -84,6 +85,11 @@ void test_prTree_9nodes_inorder(void);
 void test_prTree_9nodes_postorder(void);
 void test_numLevels_10_nodes(void);
 void test_numLevels_random_128_nodes(void);
+
+void test_prTree_Levelorder_3nodes(void);
+void test_prTree_Levelorder_5nodes(void);
+void test_prTree_Levelorder_7nodes(void);
+void test_prTree_Levelorder_9nodes(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -107,6 +113,10 @@ TEST_FNS Test_fns[] = {
                 , { "test_prTree_9nodes_postorder"      , test_prTree_9nodes_postorder }
                 , { "test_numLevels_10_nodes"           , test_numLevels_10_nodes }
                 , { "test_numLevels_random_128_nodes"   , test_numLevels_random_128_nodes }
+                , { "test_prTree_Levelorder_3nodes"     , test_prTree_Levelorder_3nodes }
+                , { "test_prTree_Levelorder_5nodes"     , test_prTree_Levelorder_5nodes }
+                , { "test_prTree_Levelorder_7nodes"     , test_prTree_Levelorder_7nodes }
+                , { "test_prTree_Levelorder_9nodes"     , test_prTree_Levelorder_9nodes }
 };
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
@@ -298,6 +308,7 @@ prTree(Node *rootp)
     prTreeTraverse(rootp, PR_TREE_PREORDER);
 }
 
+// -----------------------------------------------------------------------------
 void
 prTreeTraverse(Node *rootp, traversal_t traverse)
 {
@@ -326,6 +337,7 @@ prTreeTraverse(Node *rootp, traversal_t traverse)
     }
 }
 
+// -----------------------------------------------------------------------------
 void
 prTreeInorder(Node *nodep, uint32 level, char nodeType)
 {
@@ -341,6 +353,7 @@ prTreeInorder(Node *nodep, uint32 level, char nodeType)
     }
 }
 
+// -----------------------------------------------------------------------------
 void
 prTreePreorder(Node *nodep, uint32 level, char nodeType)
 {
@@ -355,6 +368,7 @@ prTreePreorder(Node *nodep, uint32 level, char nodeType)
     }
 }
 
+// -----------------------------------------------------------------------------
 void
 prTreePostorder(Node *nodep, uint32 level, char nodeType)
 {
@@ -370,15 +384,62 @@ prTreePostorder(Node *nodep, uint32 level, char nodeType)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Driver routine to recurse through tree and print nodes in level-order.
  * At each level, we have to maintain a queue of nodes as found at that level.
  * As we don't know the depth of the tree, do a quick traversal to find # of levels.
+ * -----------------------------------------------------------------------------
  */
 void
-prTreeLevelorder(Node *nodep, uint32 level, char nodeType)
+prTreeLevelorder(Node *rootp, uint32 level, char nodeType)
 {
-    assert(nodep != NULL);
+    assert(rootp != NULL);
+    int nlevels = numLevels(rootp);
+    int numnodes = (exp2(nlevels + 1) - 1);
+
+    // Declare an on-stack 'queue' of nodes
+    Node *qNodes[numnodes];
+    for (int ictr = 0; ictr < numnodes; ictr++) {
+        qNodes[ictr] = NULL;
+    }
+
+    // Initialize BFS traversal of tree using this queue, starting from root.
+    int head = 0;
+    qNodes[head] = rootp;
+    int qsize = 1;
+    while (qsize > 0) {
+        qsize = prTree_bfs_Levelorder(&qNodes[head], qsize);
+
+        // We processed one node at the head of the queue. So qsize decreases by 1.
+        head++;
+        qsize--;
+    }
 }
+
+/*
+ * -----------------------------------------------------------------------------
+ * Process the node at the head of qNodes queue.
+ * 'qsize' is # of elements in the queue including this one.
+ */
+int
+prTree_bfs_Levelorder(Node *qNodes[], int qsize)
+{
+    if (qsize == 0) {
+        return qsize;
+    }
+    Node *nodep = qNodes[0];
+    prNodeLevel(nodep, 0, '?');
+
+    // Add this nodes children to the queue
+    if (nodep->left) {
+        qNodes[qsize++] = nodep->left;
+    }
+    if (nodep->right) {
+        qNodes[qsize++] = nodep->right;
+    }
+    return qsize;
+}
+
 
 void
 prNodeLevel(Node *nodep, uint32 level, char nodeType)
@@ -644,6 +705,56 @@ void test_numLevels_random_128_nodes(void)
     int levels = numLevels(rootp);
     printf(" Exp # of levels=%d, Actual # of levels=%d", expNumLevels, levels);
     assert(numLevels(rootp) == expNumLevels);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_prTree_Levelorder_3nodes(void)
+{
+    TEST_START();
+    int values[] = {42, 22, 33};
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    assert(rootp);
+    prTreeTraverse(rootp, PR_TREE_LEVELORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_prTree_Levelorder_5nodes(void)
+{
+    TEST_START();
+    int values[] = {42, 22, 33, 99, 112};
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    prTree(rootp);
+    prTreeTraverse(rootp, PR_TREE_LEVELORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_prTree_Levelorder_7nodes(void)
+{
+    TEST_START();
+    int values[] = {42, 22, 33, 99, 112, 4, 55};
+    assert(ARRAYSIZE(values) == 7);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    prTree(rootp);
+    prTreeTraverse(rootp, PR_TREE_LEVELORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void test_prTree_Levelorder_9nodes(void)
+{
+    TEST_START();
+    int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
+    assert(ARRAYSIZE(values) == 9);
+    PRARRAY(values);
+    Node *rootp = makeTree(values, ARRAYSIZE(values));
+    prTree(rootp);
+    prTreeTraverse(rootp, PR_TREE_LEVELORDER);
     freeTree(&rootp);
     TEST_END();
 }
