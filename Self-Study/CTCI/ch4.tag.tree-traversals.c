@@ -8,6 +8,11 @@
  * Usage: $ gcc -o ch4.tag.tree-traversals ch4.tag.tree-traversals.c
  *        $ leaks -atExit -- ./ch4.tag.tree-traversals
  *
+ * Implemented:
+ *  - Tree construction using BFS 'search' construction
+ *  - Preorder, Inorder, Postorder and Level Order traversal to print nodes
+ *  - Qs 4.2 Build a minimal tree
+ *
  * History:
  * -----------------------------------------------------------------------------
  */
@@ -59,6 +64,8 @@ Node *makeTree(int *values, int nitems);
 
 void mkTree(Node *qOfNodes[], int qsize, int *values, int nitems);
 
+Node * mkMinimalBinaryTree(int *values, const int nitems);
+
 void prTree(Node *rootp);
 void prTreeTraverse(Node *rootp, traversal_t traverse);
 void prTreeInorder(Node *rootp, uint32 level, char nodeType);
@@ -91,6 +98,8 @@ void test_prTree_Levelorder_5nodes(void);
 void test_prTree_Levelorder_7nodes(void);
 void test_prTree_Levelorder_9nodes(void);
 
+void test_mkMinimalBinaryTree_3nodes(void);
+
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
 typedef struct test_fns
@@ -117,6 +126,8 @@ TEST_FNS Test_fns[] = {
                 , { "test_prTree_Levelorder_5nodes"     , test_prTree_Levelorder_5nodes }
                 , { "test_prTree_Levelorder_7nodes"     , test_prTree_Levelorder_7nodes }
                 , { "test_prTree_Levelorder_9nodes"     , test_prTree_Levelorder_9nodes }
+
+                , { "test_mkMinimalBinaryTree_3nodes"   , test_mkMinimalBinaryTree_3nodes }
 };
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
@@ -292,6 +303,18 @@ freeTree(Node **nodep)
         freeTree(&node->right);
     }
     freeNode(nodep);
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Prob 4.2 Minimal Tree (Pg. 75) Given a sorted (increasing order) array with
+ * unique integers, build a binary tree with minimal height.
+ * -----------------------------------------------------------------------------
+ */
+Node *
+mkMinimalBinaryTree(int *values, const int nitems)
+{
+    return NULL;
 }
 
 /*
@@ -670,7 +693,8 @@ test_prTree_9nodes_postorder(void)
     TEST_END();
 }
 
-void test_numLevels_10_nodes(void)
+void
+test_numLevels_10_nodes(void)
 {
     TEST_START();
 
@@ -686,7 +710,8 @@ void test_numLevels_10_nodes(void)
     TEST_END();
 }
 
-void test_numLevels_random_128_nodes(void)
+void
+test_numLevels_random_128_nodes(void)
 {
     TEST_START();
 
@@ -707,7 +732,8 @@ void test_numLevels_random_128_nodes(void)
     TEST_END();
 }
 
-void test_prTree_Levelorder_3nodes(void)
+void
+test_prTree_Levelorder_3nodes(void)
 {
     TEST_START();
     int values[] = {42, 22, 33};
@@ -719,7 +745,8 @@ void test_prTree_Levelorder_3nodes(void)
     TEST_END();
 }
 
-void test_prTree_Levelorder_5nodes(void)
+void
+test_prTree_Levelorder_5nodes(void)
 {
     TEST_START();
     int values[] = {42, 22, 33, 99, 112};
@@ -731,7 +758,8 @@ void test_prTree_Levelorder_5nodes(void)
     TEST_END();
 }
 
-void test_prTree_Levelorder_7nodes(void)
+void
+test_prTree_Levelorder_7nodes(void)
 {
     TEST_START();
     int values[] = {42, 22, 33, 99, 112, 4, 55};
@@ -744,7 +772,8 @@ void test_prTree_Levelorder_7nodes(void)
     TEST_END();
 }
 
-void test_prTree_Levelorder_9nodes(void)
+void
+test_prTree_Levelorder_9nodes(void)
 {
     TEST_START();
     int values[] = {42, 22, 33, 99, 112, 4, 55, 66, 900};
@@ -753,6 +782,19 @@ void test_prTree_Levelorder_9nodes(void)
     Node *rootp = makeTree(values, ARRAYSIZE(values));
     prTree(rootp);
     prTreeTraverse(rootp, PR_TREE_LEVELORDER);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkMinimalBinaryTree_3nodes(void)
+{
+    TEST_START();
+    int values[] = {2, 42, 83};
+    assert(ARRAYSIZE(values) == 3);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp == NULL);
     freeTree(&rootp);
     TEST_END();
 }
