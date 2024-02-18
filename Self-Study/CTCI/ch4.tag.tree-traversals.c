@@ -399,9 +399,7 @@ prTreeLevelorder(Node *rootp, uint32 level, char nodeType)
 
     // Declare an on-stack 'queue' of nodes
     Node *qNodes[numnodes];
-    for (int ictr = 0; ictr < numnodes; ictr++) {
-        qNodes[ictr] = NULL;
-    }
+    memset(qNodes, 0, sizeof(qNodes));
 
     // Initialize BFS traversal of tree using this queue, starting from root.
     int head = 0;
