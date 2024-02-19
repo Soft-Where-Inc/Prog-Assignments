@@ -27,6 +27,16 @@ const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
 typedef unsigned int uint32;
 
+typedef _Bool bool;
+
+#ifndef TRUE
+#define TRUE 1
+#endif
+
+#ifndef FALSE
+#define FALSE 0
+#endif
+
 /*
  * Definition of basic tree Node struct.
  */
@@ -47,6 +57,10 @@ typedef struct node {
 #define RAND_INT_RANGE(lower, upper)                \
         ((rand() % (upper - lower + 1)) + lower)
 
+/* Useful constants */
+#define K_KILO  1024
+#define MILLION (1000 * 1000)
+
 // Tree-printing traversal orders
 typedef enum {
       PR_TREE_INORDER
@@ -65,6 +79,10 @@ Node *makeTree(int *values, int nitems);
 void mkTree(Node *qOfNodes[], int qsize, int *values, int nitems);
 
 Node * mkMinimalBinaryTree(int *values, const int nitems);
+Node * mkMBT_recurse(int *values, const int nitems);
+
+bool isValidBinTree(const Node *nodep);
+bool isValid_BinTree(const Node *nodep, const int sentinel, bool is_right);
 
 void prTree(Node *rootp);
 void prTreeTraverse(Node *rootp, traversal_t traverse);
@@ -98,7 +116,13 @@ void test_prTree_Levelorder_5nodes(void);
 void test_prTree_Levelorder_7nodes(void);
 void test_prTree_Levelorder_9nodes(void);
 
+void test_mkMinimalBinaryTree_1node(void);
+void test_mkMinimalBinaryTree_2nodes(void);
 void test_mkMinimalBinaryTree_3nodes(void);
+void test_isValidBinTree(void);
+void test_mkMinimalBinaryTree_4nodes(void);
+void test_mkMinimalBinaryTree_5nodes(void);
+void test_mkMinBinaryTree_random_20_nodes(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -127,7 +151,13 @@ TEST_FNS Test_fns[] = {
                 , { "test_prTree_Levelorder_7nodes"     , test_prTree_Levelorder_7nodes }
                 , { "test_prTree_Levelorder_9nodes"     , test_prTree_Levelorder_9nodes }
 
+                , { "test_mkMinimalBinaryTree_1node"    , test_mkMinimalBinaryTree_1node }
+                , { "test_mkMinimalBinaryTree_2nodes"   , test_mkMinimalBinaryTree_2nodes }
                 , { "test_mkMinimalBinaryTree_3nodes"   , test_mkMinimalBinaryTree_3nodes }
+                , { "test_isValidBinTree"               , test_isValidBinTree }
+                , { "test_mkMinimalBinaryTree_4nodes"   , test_mkMinimalBinaryTree_4nodes }
+                , { "test_mkMinimalBinaryTree_5nodes"   , test_mkMinimalBinaryTree_5nodes }
+                , { "test_mkMinBinaryTree_random_20_nodes"   , test_mkMinBinaryTree_random_20_nodes }
 };
 
 const int Num_Test_fns = ARRAYSIZE(Test_fns);
@@ -309,12 +339,109 @@ freeTree(Node **nodep)
  * -----------------------------------------------------------------------------
  * Prob 4.2 Minimal Tree (Pg. 75) Given a sorted (increasing order) array with
  * unique integers, build a binary tree with minimal height.
+ *
+ * Algorithm:
+ *  - "Mid-point" item will be the root of the tree.
+ *  - Items < mid-point value will be inserted to left subtree
+ *  - items >= mid-point value will be inserted to right subtree
+ *  - Find the mid-point item in the array. Connect it to the root node
+ *  - Recurse on the left [0 - (n/2) - 1] entries, connecting to root->left
+ *  - Recurse on ((n/2) + 1, (n-1)] entries, connecting to root->right
  * -----------------------------------------------------------------------------
  */
 Node *
 mkMinimalBinaryTree(int *values, const int nitems)
 {
-    return NULL;
+    Node *rootp = NULL;
+    if (!values || !nitems) {
+        return rootp;
+    }
+    rootp = mkMBT_recurse(values, nitems);
+    return rootp;
+}
+
+Node *
+mkMBT_recurse(int *values, const int nitems)
+{
+    Node *rootp = NULL;
+    if (!values || !nitems) {
+        return rootp;
+    }
+    if (nitems == 1) {
+        rootp = mkNode(*values);
+    } else if (nitems <= 3) {
+        rootp = mkNode(*(values + 1));
+        rootp->left = mkNode(*values);
+        if (nitems == 3) {
+            rootp->right = mkNode(*(values + 2));
+        }
+    } else {
+        const int mid = (nitems / 2);
+
+        rootp = mkNode(*(values + mid));
+
+        rootp->left = mkMBT_recurse(values, mid);
+        rootp->right = mkMBT_recurse((values + mid + 1), (nitems - mid - 1));
+    }
+    return rootp;
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Check if tree rooted at 'rootp' is a valid minimal binary tree.
+ * All nodes to left  of rootp should be < rootp->data.
+ * All nodes to right of rootp should be >= rootp->data.
+ * -----------------------------------------------------------------------------
+ */
+bool
+isValidBinTree(const Node *nodep)
+{
+    bool rv = TRUE;
+    if (nodep == NULL) {
+        return rv;
+    }
+    if (!nodep->left && !nodep->right) {
+        return rv;
+    }
+    if (nodep->left) {
+        rv &= isValid_BinTree(nodep->left, nodep->data, FALSE);
+    }
+    if (nodep->right) {
+        rv &= isValid_BinTree(nodep->right, nodep->data, TRUE);
+    }
+    return rv;
+}
+
+/*
+ * Check if the sub-tree rooted at 'nodep' is valid binary tree.
+ * 'sentinel' is the data-value at this nodep's parent node.
+ * 'is_right' indicates if this nodep is parent-node->left or
+ * parent-node->right child.
+ *
+ * - If nodep is left child  of its parent, all values in all
+ *   nodes of this sub-tree should be < sentinel value.
+ * - If nodep is right child of its parent, all values in all
+ *   nodes of this sub-tree should be >= sentinel value.
+ */
+bool
+isValid_BinTree(const Node *nodep, const int sentinel, bool is_right)
+{
+    if (!is_right) {
+       if (nodep->data >= sentinel) {
+            return FALSE;
+        }
+    } else if (nodep->data < sentinel) {
+        return FALSE;
+    }
+
+    bool rv = TRUE;
+    if (nodep->left) {
+        rv &= isValid_BinTree(nodep->left, nodep->data, FALSE);
+    }
+    if (nodep->right) {
+        rv &= isValid_BinTree(nodep->right, nodep->data, TRUE);
+    }
+    return rv;
 }
 
 /*
@@ -787,6 +914,38 @@ test_prTree_Levelorder_9nodes(void)
 }
 
 void
+test_mkMinimalBinaryTree_1node(void)
+{
+    TEST_START();
+    int values[] = {2};
+    assert(ARRAYSIZE(values) == 1);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkMinimalBinaryTree_2nodes(void)
+{
+    TEST_START();
+    int values[] = {2, 10};
+    assert(ARRAYSIZE(values) == 2);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
 test_mkMinimalBinaryTree_3nodes(void)
 {
     TEST_START();
@@ -794,7 +953,84 @@ test_mkMinimalBinaryTree_3nodes(void)
     assert(ARRAYSIZE(values) == 3);
     PRARRAY(values);
     Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
-    assert(rootp == NULL);
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_isValidBinTree(void)
+{
+    TEST_START();
+    // Provide illegal values so output tree becomes invalid.
+    int values[] = {42, 2, 83};
+    assert(ARRAYSIZE(values) == 3);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp) == FALSE);
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkMinimalBinaryTree_4nodes(void)
+{
+    TEST_START();
+    int values[] = {2, 42, 83, 84};
+    assert(ARRAYSIZE(values) == 4);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkMinimalBinaryTree_5nodes(void)
+{
+    TEST_START();
+    int values[] = {2, 42, 83, 84, 90};
+    assert(ARRAYSIZE(values) == 5);
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
+    freeTree(&rootp);
+    TEST_END();
+}
+
+void
+test_mkMinBinaryTree_random_20_nodes(void)
+{
+    TEST_START();
+    int numNodes = 20;
+    int values[numNodes];
+    assert(ARRAYSIZE(values) == 20);
+    RAND_INIT();
+
+    // Generate n-random unique, ascending ints
+    for (int ictr = 0, randlow = 0; ictr < numNodes; ictr++) {
+        int randhigh = (randlow + K_KILO);
+        values[ictr] = RAND_INT_RANGE(randlow, randhigh);
+        randlow = values[ictr] + 1;
+    }
+    PRARRAY(values);
+    Node *rootp = mkMinimalBinaryTree(values, ARRAYSIZE(values));
+    assert(rootp);
+
+    prTree(rootp);
+    assert(isValidBinTree(rootp));
     freeTree(&rootp);
     TEST_END();
 }
