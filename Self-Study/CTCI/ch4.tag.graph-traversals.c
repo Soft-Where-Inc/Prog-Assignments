@@ -17,10 +17,29 @@ const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
 
+// -----------------------------------------------------------------------------
+// Useful typedefines
+typedef unsigned int uint32;
+
+// -----------------------------------------------------------------------------
+// Limits for this program
+const int Num_nodes = 1000; // Graph Capacity: # nodes we can track in a graph
+
+// -----------------------------------------------------------------------------
+// Define a node in a graph, giving its identity and list of connected nodes
+typedef struct graphnode
+{
+    int     id;
+    uint32  degree;
+    int *   tonodes;    // Allocated memory; needs to be free'ed.
+} GRAPHNODE;
+
 // Function Prototypes
 void test_this(void);
 void test_that(void);
 void test_msg(const char *msg);
+void test_prEmptyGraphNode(void);
+void test_prGraphNode(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -31,8 +50,10 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
+                          { "test_this"                 , test_this }
+                        , { "test_that"                 , test_that }
+                        , { "test_prEmptyGraphNode"     , test_prEmptyGraphNode }
+                        , { "test_prGraphNode"          , test_prGraphNode }
                       };
 
 // Test start / end info-msg macros
@@ -48,8 +69,9 @@ main(int argc, char *argv[])
     int rv = 0;
     // Run all test cases if no args are provided.
     if (argc == 1) {
-        test_this();
-        test_msg(hello_msg);
+        for (int tctr = 0; tctr < ARRAYSIZE(Test_fns); tctr++) {
+            Test_fns[tctr].tfn();
+        }
     } else if (strncmp("--help", argv[1], strlen("--help")) == 0) {
         printf(Usage, argv[0]);
         return rv;
@@ -73,6 +95,28 @@ main(int argc, char *argv[])
     }
 
     return rv;
+}
+
+// **** Graph Manipulation Routines ****
+
+void
+prGRAPHNODE(GRAPHNODE *nodep)
+{
+    if (!nodep) {
+        return;
+    }
+    printf("ID=%d, degree=%u", nodep->id, nodep->degree);
+    if (!nodep->degree) {
+        printf(" []\n");
+        return;
+    }
+    printf(" [");
+    char sep = ' ';
+    for (int nctr = 0; nctr < nodep->degree; nctr++) {
+        printf("%c%d", sep, nodep->tonodes[nctr]);
+        sep = ',';
+    }
+    printf(" ]\n");
 }
 
 // **** Test cases ****
@@ -102,4 +146,29 @@ test_msg(const char *msg)
     const char *expmsg = "Hello World";
     assert(strncmp(expmsg, msg, strlen(expmsg)) == 0);
     TEST_END();
+}
+
+void
+test_prEmptyGraphNode(void)
+{
+    GRAPHNODE gnode = {0};
+    gnode.id = 1;
+    prGRAPHNODE(&gnode);
+}
+
+
+void
+test_prGraphNode(void)
+{
+    GRAPHNODE gnode = {0};
+    gnode.id = 1;
+
+    gnode.degree = 3;
+    int tonodes[gnode.degree];
+    for (int nctr = 0; nctr < gnode.degree; nctr++) {
+        tonodes[nctr] = (nctr + 10);
+    }
+    gnode.tonodes = tonodes;
+
+    prGRAPHNODE(&gnode);
 }
