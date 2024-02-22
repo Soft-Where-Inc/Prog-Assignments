@@ -11,6 +11,9 @@ $ git status
 $ git remote remove Self-Study
 ```
 
+Most programs were developed using `gcc` on the Mac. Specific programs that need
+to run under Linux are under the `Linux/` sub-dir.
+
 ## NOTE: Test data files
 
 For various programs in this repo, all test data files, as needed, will be found
