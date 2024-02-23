@@ -91,6 +91,7 @@ void test_shared_ptrs_basic_int(void);
 void test_unique_ptr_basic(void);
 void test_unique_ptr_custom_deleter(void);
 void test_make_unique_ptr(void);
+void test_make_unique_ptr_then_move(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -108,6 +109,7 @@ TEST_FNS Test_fns[] = {
     , { "test_unique_ptr_basic"             , test_unique_ptr_basic }
     , { "test_unique_ptr_custom_deleter"    , test_unique_ptr_custom_deleter }
     , { "test_make_unique_ptr"              , test_make_unique_ptr }
+    , { "test_make_unique_ptr_then_move"    , test_make_unique_ptr_then_move }
 };
 
 // Test start / end info-msg macros
@@ -346,6 +348,41 @@ test_make_unique_ptr(void)
     cout << "pUniquePtr2CNode=" << pUniquePtr2CNode
          << ", data=" << pUniquePtr2CNode->data
          << " (" << sizeof(*pUniquePtr2CNode) << " bytes)"
+         << endl;
+
+    TEST_END();
+}
+
+/*
+ * Basic usage of make_unique() pointer constructor followed by move().
+ * Test case demonstrates that the move() interface will NULL'out the source
+ * unique ptr, thereby, only unique ptr is ever holding a reference to the
+ * object.
+ */
+void
+test_make_unique_ptr_then_move(void)
+{
+    TEST_START();
+
+    // The right way to do this is to use make_unique() which will make a unique_ptr
+    // to the object and then required clean-up upon exit happens automatically.
+    // std::unique_ptr<CNode> pUniquePtr2CNode { new CNode };
+    std::unique_ptr<CNode> pUniquePtr2CNode = std::make_unique<CNode>(42);
+
+    cout << "pUniquePtr2CNode=" << pUniquePtr2CNode
+         << ", pUniquePtr2CNode=" << pUniquePtr2CNode
+         << ", data=" << pUniquePtr2CNode->data
+         << endl;
+
+    // Declare a new unique-ptr pointing to the prev one. The prev one should
+    // get NULL'ed out as a result of transferring ownership to this new
+    // unique ptr.
+    auto pNewUniquePtr2Cnode = move(pUniquePtr2CNode);
+
+    cout << "pUniquePtr2CNode=" << pUniquePtr2CNode
+         << ", pNewUniquePtr2Cnode=" << pNewUniquePtr2Cnode
+         << ", data=" << pNewUniquePtr2Cnode->data
+         << " (" << sizeof(*pNewUniquePtr2Cnode) << " bytes)"
          << endl;
 
     TEST_END();
