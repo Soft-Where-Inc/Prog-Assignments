@@ -21,7 +21,12 @@
  *
  *  Run test cases to trigger memory-leaks, induced by missing 'DELETE' etc.
  *
- *              g++ -DTRIGGER_MEMORY_LEAK -o template-program-cpp template-program.cpp
+ * g++ -DTRIGGER_MEMORY_LEAK -o smart-pointers-CppCon-2019 smart-pointers-CppCon-2019.cpp
+ *
+ * To use modern C++17 features, invoke as:
+ *      g++ -std=c++17 -o smart-pointers-CppCon-2019 smart-pointers-CppCon-2019.cpp
+ *
+ * On Mac, to detect memory-leaks, do: $ leaks -atExit -- ./smart-pointers-CppCon-2019
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -85,6 +90,7 @@ void test_shared_ptrs_basic_string(void);
 void test_shared_ptrs_basic_int(void);
 void test_unique_ptr_basic(void);
 void test_unique_ptr_custom_deleter(void);
+void test_make_unique_ptr(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -101,6 +107,7 @@ TEST_FNS Test_fns[] = {
     , { "test_shared_ptrs_basic_int"        , test_shared_ptrs_basic_int }
     , { "test_unique_ptr_basic"             , test_unique_ptr_basic }
     , { "test_unique_ptr_custom_deleter"    , test_unique_ptr_custom_deleter }
+    , { "test_make_unique_ptr"              , test_make_unique_ptr }
 };
 
 // Test start / end info-msg macros
@@ -319,6 +326,27 @@ test_unique_ptr_custom_deleter(void)
     assert(Fp);
 
     std::unique_ptr<FILE, fileCloser> uniquePtrToFileHdl(Fp);
+
+    TEST_END();
+}
+
+/*
+ * Basic usage of make_unique() pointer constructor.
+ */
+void
+test_make_unique_ptr(void)
+{
+    TEST_START();
+
+    // The right way to do this is to use make_unique() which will make a unique_ptr
+    // to the object and then required clean-up upon exit happens automatically.
+    // std::unique_ptr<CNode> pUniquePtr2CNode { new CNode };
+    std::unique_ptr<CNode> pUniquePtr2CNode = std::make_unique<CNode>(42);
+
+    cout << "pUniquePtr2CNode=" << pUniquePtr2CNode
+         << ", data=" << pUniquePtr2CNode->data
+         << " (" << sizeof(*pUniquePtr2CNode) << " bytes)"
+         << endl;
 
     TEST_END();
 }
