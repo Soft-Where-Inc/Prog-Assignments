@@ -6,6 +6,8 @@
  * Ref: https://www.youtube.com/watch?v=xGDLkt-jBJ4&t=2346s)
  *      Arthur O'Dwyer “Back to Basics: Smart Pointers”
  *
+ *  - Effective Modern C++, Scott Meyers
+ *
  * Overview:
  *  - auto_ptr  : C++98; Deprecated in C++11. removged in C++17.
  *
@@ -14,7 +16,12 @@
  *  - shared_ptr    : C+=11. Adds ref-counting. C++17 adds shared_ptr<T[]>
  *  - weak_ptr      : C++11. "Weak" references.
  *
- * Usage: g++ -o template-program-cpp template-program.cpp
+ * Usage:
+ *  Default:    g++ -o template-program-cpp template-program.cpp
+ *
+ *  Run test cases to trigger memory-leaks, induced by missing 'DELETE' etc.
+ *
+ *              g++ -DTRIGGER_MEMORY_LEAK -o template-program-cpp template-program.cpp
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -28,7 +35,42 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
 
+/*
+ * ----------------------------------------------------------------------------
+ * Common structures / classes used by different test cases.
+ * ----------------------------------------------------------------------------
+ */
+typedef struct node {
+    struct node *   next;
+    int             data;
+} NODE;
+
+// ----------------------------------------------------------------------------
+// Same as struct NODE, but it's defined as a class to exercise constructors etc.
+// ----------------------------------------------------------------------------
+class CNode {
+  public:
+    CNode  *next;
+    int     data;
+    int     spare;  // Pad bytes
+
+    // Default Constructor
+    CNode() {
+        next = NULL;
+        data = -1;
+    }
+    CNode(int value) {
+        next = NULL;
+        data = value;
+    }
+
+  private:
+};
+
+
+// -----------------------------------------------------------------------------
 // Test Function Prototypes
+// -----------------------------------------------------------------------------
 void test_this(void);
 void test_that(void);
 void test_msg(string);
@@ -36,6 +78,7 @@ void test_msg(string);
 // Pointer-specific test case prototypes
 void test_shared_ptrs_basic_string(void);
 void test_shared_ptrs_basic_int(void);
+void test_unique_ptr_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -50,6 +93,7 @@ TEST_FNS Test_fns[] = {
     , { "test_that"                         , test_that }
     , { "test_shared_ptrs_basic_string"     , test_shared_ptrs_basic_string }
     , { "test_shared_ptrs_basic_int"        , test_shared_ptrs_basic_int }
+    , { "test_unique_ptr_basic"             , test_unique_ptr_basic }
 };
 
 // Test start / end info-msg macros
@@ -172,5 +216,58 @@ test_shared_ptrs_basic_int(void)
         cout << "q.sizeof()=" << sizeof(*qNowPointsTo_p) << ", Value=" << *qNowPointsTo_p
              << endl;
     }
+    TEST_END();
+}
+
+/*
+ * Basic usage of unique pointers: They are used for:
+ *
+ *  - Exclusive-ownership.
+ *  - Resource management
+ *  - Has a COPY constructor
+ *  - Its MOVE constructor NULLs out the source pointer, so at any time, only one
+ *    pointer has ownership to the object
+ *  - Destructor calls DELETE before exiting scope
+ *
+ * Normally, when we allocate an object using new(), it's allocated on the heap.
+ * We have to explicitly call `delete` on the object before exiting the scope; otherwise,
+ * there will be a memory leak.
+ *
+ * Unique pointes manage this behind-the-scenes `delete` by calling the destructor
+ * when we exit the scope.
+ */
+void
+test_unique_ptr_basic(void)
+{
+    TEST_START();
+
+    NODE *nodep = new NODE;
+
+    // You have to explicitly do this; otherwise there will be a memory leak.
+#ifndef TRIGGER_MEMORY_LEAK
+    delete nodep;
+#endif  // TRIGGER_MEMORY_LEAK
+
+    // The right way to do this is to use unique_ptr which will do the cleanup on exit.
+    std::unique_ptr<NODE> pUniquePtr2Node { new NODE };
+    std::unique_ptr<CNode> pUniquePtr2CNode { new CNode };
+
+    // RESOLVE: Somehow this syntax isn't working. It's running into this error:
+    // error: no viable conversion from 'CNode *' to 'std::unique_ptr<CNode>'
+    // std::unique_ptr<CNode> pUniquePtr2CNode42 = new CNode(42);
+    std::unique_ptr<CNode> pUniquePtr2CNode42 { new CNode(42) };
+
+    cout << "pUniquePtr2Node=" << pUniquePtr2Node
+         << ", data=" << pUniquePtr2Node->data
+         << ", pUniquePtr2CNode=" << pUniquePtr2CNode
+
+         << ", data=" << pUniquePtr2CNode->data
+         << " (" << sizeof(*pUniquePtr2CNode) << " bytes)"
+
+         << ", pUniquePtr2CNode42=" << pUniquePtr2CNode42
+         << ", data=" << pUniquePtr2CNode42->data
+         << endl;
+
+
     TEST_END();
 }
