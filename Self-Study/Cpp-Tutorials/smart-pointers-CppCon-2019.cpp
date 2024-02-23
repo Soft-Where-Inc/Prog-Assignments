@@ -27,6 +27,7 @@
  * -----------------------------------------------------------------------------
  */
 
+#include <cstdio>
 #include <iostream>
 
 using namespace std;
@@ -35,11 +36,15 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
 
+
 /*
  * ----------------------------------------------------------------------------
  * Common structures / classes used by different test cases.
  * ----------------------------------------------------------------------------
  */
+const char *ThisFileName = NULL;
+FILE *Fp = NULL;    // Used by some test-cases to fopen() files.
+
 typedef struct node {
     struct node *   next;
     int             data;
@@ -79,6 +84,7 @@ void test_msg(string);
 void test_shared_ptrs_basic_string(void);
 void test_shared_ptrs_basic_int(void);
 void test_unique_ptr_basic(void);
+void test_unique_ptr_custom_deleter(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -94,6 +100,7 @@ TEST_FNS Test_fns[] = {
     , { "test_shared_ptrs_basic_string"     , test_shared_ptrs_basic_string }
     , { "test_shared_ptrs_basic_int"        , test_shared_ptrs_basic_int }
     , { "test_unique_ptr_basic"             , test_unique_ptr_basic }
+    , { "test_unique_ptr_custom_deleter"    , test_unique_ptr_custom_deleter }
 };
 
 // Test start / end info-msg macros
@@ -108,6 +115,8 @@ TEST_FNS Test_fns[] = {
 int
 main(const int argc, const char *argv[])
 {
+    ThisFileName = argv[0];
+
     string hello_msg = "Hello World.";
     cout << argv[0] << ": " << hello_msg << " (argc=" << argc << ")" << endl;
 
@@ -233,7 +242,7 @@ test_shared_ptrs_basic_int(void)
  * We have to explicitly call `delete` on the object before exiting the scope; otherwise,
  * there will be a memory leak.
  *
- * Unique pointes manage this behind-the-scenes `delete` by calling the destructor
+ * Unique pointers manage this behind-the-scenes `delete` by calling the destructor
  * when we exit the scope.
  */
 void
@@ -268,6 +277,48 @@ test_unique_ptr_basic(void)
          << ", data=" << pUniquePtr2CNode42->data
          << endl;
 
+
+    TEST_END();
+}
+
+/*
+ * Usage of unique pointers to exercise custom 'deleter' operator(), hidden
+ * with a default deleter in the interface of this class.
+ *
+ * When the Unique pointers does `delete` by calling the destructor when we exit
+ * the scope, the custome deleter operator() is invoked. In this example, we
+ * open a FILE to read some data. And the custom deleter is defined as fclose()
+ * to close the file handle upon exit.
+ */
+void
+test_unique_ptr_custom_deleter(void)
+{
+    // --------------------------------------------------------------------------
+    // NOTE:
+    // The optional class Deleter in the interface for the class unique_ptr
+    // has an operator method declared as: void operator()(T *p) const {...}
+    // So, you -cannot- pass-in any more args to operator() defined below.
+    // It may be useful to report the filename whose file handle is being
+    // closed but we cannot pass-in that extra argument thru this interface.
+    // --------------------------------------------------------------------------
+    struct fileCloser {
+        void
+        operator()(FILE *fp) const {
+            assert(fp != nullptr);
+            cout << __func__ << ":" << __LINE__
+                 << ": Closing open file-handle at " << fp << endl;
+            fclose(fp);
+        }
+    };
+    TEST_START();
+
+    // Open this program's source file. If you do nothing, this file will remain open
+    // when this function exits.
+    Fp = fopen(ThisFileName, "r");
+
+    assert(Fp);
+
+    std::unique_ptr<FILE, fileCloser> uniquePtrToFileHdl(Fp);
 
     TEST_END();
 }
