@@ -92,6 +92,8 @@ void test_unique_ptr_basic(void);
 void test_unique_ptr_custom_deleter(void);
 void test_make_unique_ptr(void);
 void test_make_unique_ptr_then_move(void);
+void test_shared_ptr_basic(void);
+void test_shared_ptr_nested(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -110,6 +112,8 @@ TEST_FNS Test_fns[] = {
     , { "test_unique_ptr_custom_deleter"    , test_unique_ptr_custom_deleter }
     , { "test_make_unique_ptr"              , test_make_unique_ptr }
     , { "test_make_unique_ptr_then_move"    , test_make_unique_ptr_then_move }
+    , { "test_shared_ptr_basic"             , test_shared_ptr_basic }
+    , { "test_shared_ptr_nested"            , test_shared_ptr_nested }
 };
 
 // Test start / end info-msg macros
@@ -385,5 +389,73 @@ test_make_unique_ptr_then_move(void)
          << " (" << sizeof(*pNewUniquePtr2Cnode) << " bytes)"
          << endl;
 
+    TEST_END();
+}
+
+/*
+ * Basic test to establish two shared-ptrs in the same function's scope.
+ */
+void
+test_shared_ptr_basic(void)
+{
+    TEST_START();
+
+    // The right way to do this is to use shared_ptr which will do the cleanup on exit.
+    std::shared_ptr<CNode> pSharedPtr1_to_CNode { new CNode };
+
+    // Create another handle pointing to the same object.
+    auto pSharedPtr2_to_CNode = pSharedPtr1_to_CNode;
+
+    // Update the value, so it should be reflected thru 1st shared ptr also.
+    pSharedPtr2_to_CNode->data = 42;
+
+    cout << ", pSharedPtr1_2CNode=" << pSharedPtr1_to_CNode
+         << ", data=" << pSharedPtr1_to_CNode->data
+         << " (" << sizeof(*pSharedPtr1_to_CNode) << " bytes)"
+         << ", pSharedPtr2_to_CNode=" << pSharedPtr2_to_CNode
+         << ", data=" << pSharedPtr2_to_CNode->data
+         << endl;
+
+    assert(pSharedPtr1_to_CNode == pSharedPtr2_to_CNode);
+    TEST_END();
+}
+
+/*
+ * Helper function to test_shared_ptr(). Used to exercise creating
+ * another shared pointer, using which the object's data is updated.
+ * Caller verifies the changed value after this fn returns.
+ */
+void
+test_shared_ptr_minion(std::shared_ptr<CNode> sharedPtr, const int newval)
+{
+    // Create another handle pointing to the same object.
+    auto pSharedPtr2_to_CNode = sharedPtr;
+
+    // Update the value, so it should be reflected thru 1st shared ptr also.
+    pSharedPtr2_to_CNode->data = newval;
+}
+
+/*
+ * Basic test to establish two shared-ptrs in the same function's scope.
+ */
+void
+test_shared_ptr_nested(void)
+{
+    TEST_START();
+
+    // Right way to do this is to use shared_ptr which will do the cleanup on exit.
+    std::shared_ptr<CNode> pSharedPtr1_to_CNode { new CNode };
+
+    // This will create another handle pointing to the same object,
+    // and update the value..
+    const int newval = 42;
+    test_shared_ptr_minion(pSharedPtr1_to_CNode, newval);
+
+    cout << ", pSharedPtr1_2CNode=" << pSharedPtr1_to_CNode
+         << ", data=" << pSharedPtr1_to_CNode->data
+         << endl;
+
+    // Data should have been updated done by the shared-ptr in the minion.
+    assert(pSharedPtr1_to_CNode->data == newval);
     TEST_END();
 }
