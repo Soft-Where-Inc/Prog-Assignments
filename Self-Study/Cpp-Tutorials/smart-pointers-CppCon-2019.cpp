@@ -20,7 +20,7 @@
  *  - weak_ptr      : C++11. "Weak" references.
  *
  * Usage:
- *  Default:    g++ -o template-program-cpp template-program.cpp
+ *  Default:    g++ -o smart-pointers-CppCon-2019 smart-pointers-CppCon-2019.cpp
  *
  *  Run test cases to trigger memory-leaks, induced by missing 'DELETE' etc.
  *
@@ -32,6 +32,7 @@
  * On Mac, to detect memory-leaks, do: $ leaks -atExit -- ./smart-pointers-CppCon-2019
  *
  * History:
+ * RESOLVE: Under construction ... still incomplete.
  * -----------------------------------------------------------------------------
  */
 
