@@ -196,6 +196,7 @@ test_msg(string msg)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic usage of shared pointers is similar to other pointers.
  *
  *  - Usage of 'auto' to establish another shared pointer
@@ -222,10 +223,12 @@ test_shared_ptrs_basic_string(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic usage of shared pointers is similar to other pointers.
  *
  *  - Usage of 'auto' to establish another shared pointer
  *  - Usage of pointer->length(), to get size of datum pointer points to.
+ * -----------------------------------------------------------------------------
  */
 void
 test_shared_ptrs_basic_int(void)
@@ -249,6 +252,7 @@ test_shared_ptrs_basic_int(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic usage of unique pointers: They are used for:
  *
  *  - Exclusive-ownership.
@@ -264,6 +268,7 @@ test_shared_ptrs_basic_int(void)
  *
  * Unique pointers manage this behind-the-scenes `delete` by calling the destructor
  * when we exit the scope.
+ * -----------------------------------------------------------------------------
  */
 void
 test_unique_ptr_basic(void)
@@ -302,6 +307,7 @@ test_unique_ptr_basic(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Usage of unique pointers to exercise custom 'deleter' operator(), hidden
  * with a default deleter in the interface of this class.
  *
@@ -309,6 +315,7 @@ test_unique_ptr_basic(void)
  * the scope, the custome deleter operator() is invoked. In this example, we
  * open a FILE to read some data. And the custom deleter is defined as fclose()
  * to close the file handle upon exit.
+ * -----------------------------------------------------------------------------
  */
 void
 test_unique_ptr_custom_deleter(void)
@@ -344,6 +351,7 @@ test_unique_ptr_custom_deleter(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic usage of make_unique() pointer constructor.
  */
 void
@@ -365,10 +373,12 @@ test_make_unique_ptr(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic usage of make_unique() pointer constructor followed by move().
  * Test case demonstrates that the move() interface will NULL'out the source
  * unique ptr, thereby, only unique ptr is ever holding a reference to the
  * object.
+ * -----------------------------------------------------------------------------
  */
 void
 test_make_unique_ptr_then_move(void)
@@ -400,6 +410,7 @@ test_make_unique_ptr_then_move(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic test to establish two shared-ptrs in the same function's scope.
  */
 void
@@ -428,12 +439,14 @@ test_shared_ptr_basic(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Helper function to test_shared_ptr(). Used to exercise creating
  * another shared pointer, using which the object's data is updated.
  * Caller verifies the changed value after this fn returns.
  *
  * 'raiseException' is a boolean to control and simulate an early exit
  * from this function on account of an exception.
+ * -----------------------------------------------------------------------------
  */
 void
 test_shared_ptr_minion(std::shared_ptr<CNode> sharedPtr, const int newval,
@@ -455,6 +468,7 @@ test_shared_ptr_minion(std::shared_ptr<CNode> sharedPtr, const int newval,
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic test to establish two shared-ptrs in the same function's scope.
  */
 void
@@ -480,12 +494,14 @@ test_shared_ptr_nested(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Basic test to establish two shared-ptrs in the same function's scope.
  * A nested function call establishes the shared-ptr but raises an exception.
  *
  * This test-case (based on [3], pg. 36, shows an example of catching an
  * exception by reference, to avoid copying it. And the use of what()
  * to print the error message raised by the throw() exception call.
+ * -----------------------------------------------------------------------------
  */
 void
 test_shared_ptr_nested_raise_exception(void)
