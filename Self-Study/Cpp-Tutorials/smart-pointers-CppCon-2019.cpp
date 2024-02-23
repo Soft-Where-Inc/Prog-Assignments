@@ -3,10 +3,13 @@
  * Implement example usages to understand smart pointers better, based on the
  * material covered in this video, from CppCon 2019.
  *
- * Ref: https://www.youtube.com/watch?v=xGDLkt-jBJ4&t=2346s)
+ * Ref:
+ *  [1] https://www.youtube.com/watch?v=xGDLkt-jBJ4&t=2346s)
  *      Arthur O'Dwyer “Back to Basics: Smart Pointers”
  *
- *  - Effective Modern C++, Scott Meyers
+ *  [2] Effective Modern C++, Scott Meyers
+ *
+ *  [3] A Tour of C++, 2nd Edition, Bjarne Stoustrup.
  *
  * Overview:
  *  - auto_ptr  : C++98; Deprecated in C++11. removged in C++17.
@@ -34,6 +37,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -94,6 +98,7 @@ void test_make_unique_ptr(void);
 void test_make_unique_ptr_then_move(void);
 void test_shared_ptr_basic(void);
 void test_shared_ptr_nested(void);
+void test_shared_ptr_nested_raise_exception(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -114,6 +119,8 @@ TEST_FNS Test_fns[] = {
     , { "test_make_unique_ptr_then_move"    , test_make_unique_ptr_then_move }
     , { "test_shared_ptr_basic"             , test_shared_ptr_basic }
     , { "test_shared_ptr_nested"            , test_shared_ptr_nested }
+    , { "test_shared_ptr_nested_raise_exception"
+                                            , test_shared_ptr_nested_raise_exception }
 };
 
 // Test start / end info-msg macros
@@ -424,13 +431,25 @@ test_shared_ptr_basic(void)
  * Helper function to test_shared_ptr(). Used to exercise creating
  * another shared pointer, using which the object's data is updated.
  * Caller verifies the changed value after this fn returns.
+ *
+ * 'raiseException' is a boolean to control and simulate an early exit
+ * from this function on account of an exception.
  */
 void
-test_shared_ptr_minion(std::shared_ptr<CNode> sharedPtr, const int newval)
+test_shared_ptr_minion(std::shared_ptr<CNode> sharedPtr, const int newval,
+                       bool raiseException = false)
 {
     // Create another handle pointing to the same object.
     auto pSharedPtr2_to_CNode = sharedPtr;
 
+    if (raiseException) {
+        string msg = std::string{__func__} + ":"  + std::to_string(__LINE__)
+                   + ": Raising exception after establishing shared ptr"
+                   + ", but before changing oldval="
+                   + std::to_string(pSharedPtr2_to_CNode->data)
+                   + " to newval=" + std::to_string(newval) + ".";
+         throw out_of_range{msg};
+    }
     // Update the value, so it should be reflected thru 1st shared ptr also.
     pSharedPtr2_to_CNode->data = newval;
 }
@@ -457,5 +476,42 @@ test_shared_ptr_nested(void)
 
     // Data should have been updated done by the shared-ptr in the minion.
     assert(pSharedPtr1_to_CNode->data == newval);
+    TEST_END();
+}
+
+/*
+ * Basic test to establish two shared-ptrs in the same function's scope.
+ * A nested function call establishes the shared-ptr but raises an exception.
+ *
+ * This test-case (based on [3], pg. 36, shows an example of catching an
+ * exception by reference, to avoid copying it. And the use of what()
+ * to print the error message raised by the throw() exception call.
+ */
+void
+test_shared_ptr_nested_raise_exception(void)
+{
+    TEST_START();
+
+    const int oldval = 41;
+    // Right way to do this is to use shared_ptr which will do the cleanup on exit.
+    std::shared_ptr<CNode> pSharedPtr1_to_CNode { new CNode(oldval) };
+
+    const int newval = 42;
+
+    // This will create another handle pointing to the same object,
+    // but will run into an exception before updating the value.
+    try {
+        test_shared_ptr_minion(pSharedPtr1_to_CNode, newval, true);
+    } catch (out_of_range& ex) {
+        string msg = std::string{__func__} + ":"  + std::to_string(__LINE__)
+                   + " Caught out-of-range exception: ";
+        cout << msg << ex.what() << endl;
+    }
+
+    cout << ", pSharedPtr1_2CNode=" << pSharedPtr1_to_CNode
+         << ", data=" << pSharedPtr1_to_CNode->data;
+
+    // Data should -not- have been updated done by the shared-ptr in the minion.
+    assert(pSharedPtr1_to_CNode->data == oldval);
     TEST_END();
 }
