@@ -5,6 +5,7 @@
  * Ref:
  *
  * Usage: gcc -o template-program-c template-program.c
+ *        ./template-program-c [--help | test_<something> | test_<prefix> ]
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -17,7 +18,7 @@ const char *Usage = "%s [ --help | test_<fn-name> ]\n";
 
 #define ARRAYSIZE(arr) ((int) (sizeof(arr) / sizeof(*arr)))
 
-// Function Prototypes
+// Test Function Prototypes
 void test_this(void);
 void test_that(void);
 void test_msg(const char *msg);
@@ -39,6 +40,11 @@ TEST_FNS Test_fns[] = {
 #define TEST_START()  printf("%s ", __func__)
 #define TEST_END()    printf(" ...OK\n")
 
+/*
+ * *****************************************************************************
+ * main()
+ * *****************************************************************************
+ */
 int
 main(int argc, char *argv[])
 {
@@ -50,6 +56,9 @@ main(int argc, char *argv[])
     if (argc == 1) {
         test_this();
         test_msg(hello_msg);
+        for (int tctr = 0; tctr < ARRAYSIZE(Test_fns); tctr++) {
+            Test_fns[tctr].tfn();
+        }
     } else if (strncmp("--help", argv[1], strlen("--help")) == 0) {
         printf(Usage, argv[0]);
         return rv;
@@ -57,13 +66,14 @@ main(int argc, char *argv[])
 
         // Execute the named test-function, if it's a supported test-function
         int tctr = 0;
+        int ntests = 0;
         for (; tctr < ARRAYSIZE(Test_fns); tctr++) {
-            if (!strcmp(Test_fns[tctr].tfn_name, argv[1])) {
+            if (!strncmp(Test_fns[tctr].tfn_name, argv[1], strlen(argv[1]))) {
                 Test_fns[tctr].tfn();
-                break;
+                ntests++;
             }
         }
-        if (tctr == ARRAYSIZE(Test_fns)) {
+        if (tctr == ARRAYSIZE(Test_fns) && !ntests) {
             printf("Warning: Named test-function '%s' not found.\n", argv[1]);
             rv = 1;
         }
@@ -81,7 +91,6 @@ void
 test_this(void)
 {
     TEST_START();
-
     assert(1 == 1);
     TEST_END();
 }
@@ -101,5 +110,4 @@ test_msg(const char *msg)
 
     const char *expmsg = "Hello World";
     assert(strncmp(expmsg, msg, strlen(expmsg)) == 0);
-    TEST_END();
 }
