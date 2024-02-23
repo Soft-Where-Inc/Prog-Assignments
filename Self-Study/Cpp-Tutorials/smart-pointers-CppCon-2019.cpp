@@ -33,6 +33,10 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 
+// Pointer-specific test case prototypes
+void test_shared_ptrs_basic_string(void);
+void test_shared_ptrs_basic_int(void);
+
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
 typedef struct test_fns
@@ -42,9 +46,11 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
-                      };
+      { "test_this"                         , test_this }
+    , { "test_that"                         , test_that }
+    , { "test_shared_ptrs_basic_string"     , test_shared_ptrs_basic_string }
+    , { "test_shared_ptrs_basic_int"        , test_shared_ptrs_basic_int }
+};
 
 // Test start / end info-msg macros
 #define TEST_START()  printf("%s ", __func__)
@@ -74,13 +80,14 @@ main(const int argc, const char *argv[])
     } else if (strncmp("test_", argv[1], strlen("test_")) == 0) {
         // Execute the named test-function, if it's a supported test-function
         int tctr = 0;
+        int found = 0;
         for (; tctr < ARRAYSIZE(Test_fns); tctr++) {
-            if (!strcmp(Test_fns[tctr].tfn_name, argv[1])) {
+            if (!strncmp(Test_fns[tctr].tfn_name, argv[1], strlen(argv[1]))) {
                 Test_fns[tctr].tfn();
-                break;
+                found++;
             }
         }
-        if (tctr == ARRAYSIZE(Test_fns)) {
+        if (!found) {
             printf("Warning: Named test-function '%s' not found.\n", argv[1]);
             rv = 1;
         }
@@ -115,3 +122,55 @@ test_msg(string msg)
     assert(msg == "Hello World.");
 }
 
+/*
+ * Basic usage of shared pointers is similar to other pointers.
+ *
+ *  - Usage of 'auto' to establish another shared pointer
+ *  - Usage of pointer->length(), to get size of datum pointer points to.
+ *  - Shared pointers are assignable like ordinary pointers are
+ *  - They are copy-constructible.
+ */
+void
+test_shared_ptrs_basic_string(void)
+{
+    TEST_START();
+
+    std::shared_ptr<string> pSharedPtr2Str = make_shared<string>("Hello");
+
+    // Allocate a new shared ptr 'q' pointing to data pointed to by 'p'
+    auto qNowPointsTo_p = pSharedPtr2Str;
+    assert(*qNowPointsTo_p == *pSharedPtr2Str);
+
+    pSharedPtr2Str = nullptr;
+
+    cout << "q.length()=" << qNowPointsTo_p->length() << ": '" << *qNowPointsTo_p << "'"
+         << endl;
+    TEST_END();
+}
+
+/*
+ * Basic usage of shared pointers is similar to other pointers.
+ *
+ *  - Usage of 'auto' to establish another shared pointer
+ *  - Usage of pointer->length(), to get size of datum pointer points to.
+ */
+void
+test_shared_ptrs_basic_int(void)
+{
+    TEST_START();
+
+    std::shared_ptr<int> pSharedPtr2Int = make_shared<int>(42);
+
+    // Allocate a new shared ptr 'q' pointing to data pointed to by 'p'
+    auto qNowPointsTo_p = pSharedPtr2Int;
+    assert(*qNowPointsTo_p == *pSharedPtr2Int);
+
+    pSharedPtr2Int = nullptr;
+
+    // Can use them as implicit "!= nullptr" boolean check.
+    if (qNowPointsTo_p) {
+        cout << "q.sizeof()=" << sizeof(*qNowPointsTo_p) << ", Value=" << *qNowPointsTo_p
+             << endl;
+    }
+    TEST_END();
+}
