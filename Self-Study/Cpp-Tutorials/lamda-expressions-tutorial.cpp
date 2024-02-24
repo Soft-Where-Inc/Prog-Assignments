@@ -7,6 +7,8 @@
  * Ref:
  *  [1] MS https://learn.microsoft.com/en-us/cpp/cpp/lambda-expressions-in-cpp?view=msvc-170
  *
+ *  [2] MS https://learn.microsoft.com/en-us/cpp/cpp/examples-of-lambda-expressions?view=msvc-170
+ *
  * Usage: g++ -o lamda-expressions-tutorial lamda-expressions-tutorial.cpp
  *
  * History:
@@ -31,6 +33,7 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 
+void test_lambda_expr_basic(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 
@@ -45,6 +48,7 @@ typedef struct test_fns
 TEST_FNS Test_fns[] = {
                   { "test_this"             , test_this }
                 , { "test_that"             , test_that }
+                , { "test_lambda_expr_basic", test_lambda_expr_basic }
                 , { "test_doSortFloats"     , test_doSortFloats }
                 , { "test_doSortFloatsUsingLambdaFns"
                                             , test_doSortFloatsUsingLambdaFns }
@@ -241,6 +245,63 @@ test_msg(string msg)
     TEST_START();
     assert(msg == "Hello World.");
 }
+
+/*
+ * -----------------------------------------------------------------------------
+ * Basic usage of lambda expressions (anonymous functions) to do simple math.
+ * Based on [1] and [2].
+ *
+ * Parts of a lambda expression:
+ *  [] [&] [=]  : Capture clause
+ *  ()          : Optional parameter list
+ *  mutable     : Optional keyword
+ *  throw()     : Optional exception-specification
+ *  -> <type>   : Trailing return-type
+ */
+void
+test_lambda_expr_basic(void)
+{
+    TEST_START();
+
+    // -----
+    // Assign the lambda expression that adds two numbers to an auto variable.
+    // NOTE That you don't need to declare the return type of the fn 'f1'.
+    // Expression resulotion seems to resolve the return type.
+    auto i1 = [](const int x, const int y) { return x + y; };
+
+    cout << "Sum of (2, 3)=" << i1(2, 3) << endl;
+
+    // -----
+    // NOTE: You -cannot- declare 'const int y' as we do y++ inside the fn.
+    auto f2_sum_x_incr_y = [](const int x, int y) { y++; return (x + y); };
+
+    cout << "f2_sum_x_incr_y(2, 3)=" << f2_sum_x_incr_y(2, 3) << endl;
+
+    // -----
+    // Define return type of the anonymous function using "-> <type>" clause
+    // Even though the fn takes floats, and computes result as a float, the
+    // value returned will be converted to 'int'.
+    auto f3_sum_floats_return_int = [](const float x, const float y) -> int
+                                        {
+                                            auto rv = (x + y);
+                                            cout << "[ Anon " << __func__ << ": rv="
+                                                 << rv << " ] ";
+                                            return rv;
+                                        };
+
+    const float f1{2.2};
+    const float f2{3.3};
+    cout << "f3_sum_floats_return_int(" << f1 << ", " << f2 << ")="
+         << f3_sum_floats_return_int(f1, f2) << endl;
+
+    // Assign the same lambda expression to a function object.
+    function<int(int, int)> fnObj = [](int x, int y) { return x + y; };
+
+    cout << "fnObj(): sum(3,4)=" << fnObj(3, 4) << endl;
+
+    TEST_END();
+}
+
 
 /*
  * -----------------------------------------------------------------------------
