@@ -32,6 +32,7 @@ void test_that(void);
 void test_msg(string);
 
 void test_doSortFloats(void);
+void test_doSortFloatsUsingLambdaFns(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -45,6 +46,8 @@ TEST_FNS Test_fns[] = {
                   { "test_this"             , test_this }
                 , { "test_that"             , test_that }
                 , { "test_doSortFloats"     , test_doSortFloats }
+                , { "test_doSortFloatsUsingLambdaFns"
+                                            , test_doSortFloatsUsingLambdaFns }
     };
 
 // Test start / end info-msg macros
@@ -95,13 +98,14 @@ main(const int argc, const char *argv[])
     } else if (strncmp("test_", argv[1], strlen("test_")) == 0) {
         // Execute the named test-function, if it's a supported test-function
         int tctr = 0;
+        int ntests = 0;
         for (; tctr < ARRAYSIZE(Test_fns); tctr++) {
-            if (!strcmp(Test_fns[tctr].tfn_name, argv[1])) {
+            if (!strncmp(Test_fns[tctr].tfn_name, argv[1], strlen(argv[1]))) {
                 Test_fns[tctr].tfn();
-                break;
+                ntests++;
             }
         }
-        if (tctr == ARRAYSIZE(Test_fns)) {
+        if (tctr == ARRAYSIZE(Test_fns) && !ntests) {
             printf("Warning: Named test-function '%s' not found.\n", argv[1]);
             rv = 1;
         }
@@ -158,6 +162,60 @@ doDescSortFloatsCmpfn(vector<float>& floats)
     std::sort(floats.begin(), floats.end(), floatDescCmp);
 }
 
+/*
+ * *****************************************************************************
+ * Implement std::sort() using ascending sort-compare function defined
+ * as a lambda function. Based on [1]
+ * *****************************************************************************
+ */
+void
+doSortFloatsLambdaCmpfn(vector<float>& floats)
+{
+    std::sort(floats.begin(), floats.end(),
+               // Lambda expression begins here
+               [](float f1, float f2) {
+                    return (f1 < f2);
+               }
+               // Lambda expression ends here
+            );
+}
+
+/*
+ * *****************************************************************************
+ * Implement std::sort() using descending sort-compare function defined
+ * as a lambda function. Based on [1]
+ * *****************************************************************************
+ */
+void
+doDescSortFloatsLambdaCmpfn(vector<float>& floats)
+{
+    std::sort(floats.begin(), floats.end(),
+               // Lambda expression begins here
+               [](float f1, float f2) {
+                    return (f1 >= f2);
+               }
+               // Lambda expression ends here
+            );
+}
+
+/*
+ * *****************************************************************************
+ * Implement std::sort() using ascending sort-compare function on absolute float
+ * value, defined as a lambda function. Based on [1]
+ * *****************************************************************************
+ */
+void
+doSortFloatsAbsValueLambdaCmpfn(vector<float>& floats)
+{
+    std::sort(floats.begin(), floats.end(),
+               // Lambda expression begins here
+               [](float f1, float f2) {
+                    return (std::abs(f1) < std::abs(f2));
+               }
+               // Lambda expression ends here
+            );
+}
+
 // **** Test cases ****
 
 void
@@ -185,12 +243,13 @@ test_msg(string msg)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * Test case to exercise different flavours of interfaces to sort floats.
  * Use an initial unsorted vector of arrays. Declare an expected sorted array
- * of floats. Exercise different interfaces to sort the vector, using std::sort(),
- * and then with lamda-functions for the sort-comparator function.
+ * of floats. Exercise different interfaces to sort the vector, using std::sort().
  *
  * Verify that the resultant array matches the expected sorted array of floats.
+ * -----------------------------------------------------------------------------
  */
 void
 test_doSortFloats(void)
@@ -230,7 +289,68 @@ test_doSortFloats(void)
     doDescSortFloatsCmpfn(floats);
 
     cout << " DescSorted: " << floats << endl;
-    // assert(floats == floatsSorted);
+    assert(floats == floatsSortedDesc);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Test case to exercise different flavours of interfaces to sort floats,
+ * using lambda functions to specify the sort-comparison functions.
+ * Use an initial unsorted vector of arrays. Declare an expected sorted array
+ * of floats. Exercise different interfaces to sort the vector, using std::sort().
+ *
+ * Verify that the resultant array matches the expected sorted array of floats.
+ * -----------------------------------------------------------------------------
+ */
+void
+test_doSortFloatsUsingLambdaFns(void)
+{
+    TEST_START();
+    cout << endl;
+
+    vector<float> floatsUnsorted   = { 3.123, -3.123, -1.9, 1.9, 2, 0 };
+    vector<float> floatsSorted     = {-3.123, -1.9, 0, 1.9, 2, 3.123 }; // expected
+
+    // Sorting by absolute-values will only rearrange the items as they
+    // appear in the unsorted input-list. The floatsUnsorted is intentionally
+    // setup so that we have a pair of (3.123, -3.123) and another pair (-1.9, 1.9)
+    // where the +ve / -ve terms come in diff orders. In the sorted list, we
+    // should expect to see the order retained, as shown below:
+    vector<float> floatsSortAbsVal = { 0, -1.9, 1.9, 2, 3.123, -3.123 }; // expected
+
+    vector<float> floatsSortedDesc = { 3.123, 2, 1.9, 0, -1.9, -3.123 };
+
+    // -- Sorting vector of floats using ascending sort lambda function.
+    vector<float> floats = floatsUnsorted;
+
+    cout << "doSortFloatsLambdaCmpfn(): Unsorted: " << floats;
+
+    doSortFloatsLambdaCmpfn(floats);
+
+    cout << " Sorted: " << floats << endl;
+    assert(floats == floatsSorted);
+
+    // -- Sorting vector of floats using descending sort lambda function.
+    floats = floatsUnsorted;
+
+    cout << "doDescSortFloatsLambdaCmpfn(): Unsorted: " << floats;
+
+    doDescSortFloatsLambdaCmpfn(floats);
+
+    cout << " DescSorted: " << floats << endl;
+    assert(floats == floatsSortedDesc);
+
+    // -- Ascending sort of vector of floats using absolute value in lambda fn
+    floats = floatsUnsorted;
+
+    cout << "doSortFloatsAbsValueLambdaCmpfn(): Unsorted: " << floats;
+
+    doSortFloatsAbsValueLambdaCmpfn(floats);
+
+    cout << " Sorted: " << floats << endl;
+    assert(floats == floatsSortAbsVal);
 
     TEST_END();
 }
