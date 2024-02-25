@@ -532,6 +532,13 @@ test_use_lambda_expr_to_split_into_even_odd_lists(void)
     list<int> exp_even_nos_list = {6, 10, 20, 42};
     assert(even_nos == exp_even_nos_list);
 
+    // One way to create odd #s sub-list is to copy directly from the
+    // partition point of the partitioned list. std::partition() has already
+    // re-arranged numbers[] such that non-even #s are stacked up at the
+    // rear-end of the list starting from ''partition_point'
+    list<int> odd_nos_2 = {};   // Used later on for assertion checking
+    std::copy(partition_point, numbers.end(), std::back_inserter(odd_nos_2));
+
     // ---- Sub-case for odd numbers list ----
 
     auto is_odd  = [](const int n) { return ((n % 2) == 1); };
@@ -546,10 +553,16 @@ test_use_lambda_expr_to_split_into_even_odd_lists(void)
 
     odd_nos.sort();
 
-    cout << "List of odd numbers: " << odd_nos << endl;
+    cout << "List of odd numbers (Method-1): " << odd_nos << endl;
 
     list<int> exp_odd_nos_list = {5, 9, 11, 33};
     assert(odd_nos == exp_odd_nos_list);
+
+    odd_nos_2.sort();
+
+    cout << "List of odd numbers (Method-2): " << odd_nos_2 << endl;
+
+    assert(odd_nos_2 == exp_odd_nos_list);
 
     TEST_END();
 }
