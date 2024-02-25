@@ -41,6 +41,7 @@ void test_lambda_expr_as_fn_arg_to_api(void);
 void test_use_lambda_expr_to_split_into_even_odd_lists(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
+void test_nested_lambda_exprs(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -65,6 +66,8 @@ TEST_FNS Test_fns[] = {
                 , { "test_doSortFloats"     , test_doSortFloats }
                 , { "test_doSortFloatsUsingLambdaFns"
                                             , test_doSortFloatsUsingLambdaFns }
+                , { "test_nested_lambda_exprs"
+                                            , test_nested_lambda_exprs }
     };
 
 // Test start / end info-msg macros
@@ -676,6 +679,45 @@ test_doSortFloatsUsingLambdaFns(void)
 
     cout << " Sorted: " << floats << endl;
     assert(floats == floatsSortAbsVal);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Demonstrate use of nested lambda expressions. Lifted from [2].
+ * The inner lambda expression multiplies its argument by 2 and returns the
+ * result. The outer lambda expression calls the inner lambda expression with
+ * its argument and adds 3 to the result.
+ *
+ * The lambda expression is invoked-upon-definition with arg 5.
+ * So, effectively it's calculating: (5 * 2) + 3 == 13.
+ * -----------------------------------------------------------------------------
+ */
+void
+test_nested_lambda_exprs(void)
+{
+    TEST_START();
+
+    // The following lambda expression contains a nested lambda expression.
+    // auto timestwoplusthree = [](int x) { return [](int y) { return y * 2; }(x) + 3; }(5);
+                          // Start of outer lambda-fn
+    auto timestwoplusthree =
+                [](int x) {
+                                  // Start of inner lambda-fn
+                              return [](int y) {
+                                                    return y * 2;
+                                               } // Inner lambda-fn ends here.
+
+                                                // Inner lambda is invoked here,
+                                                // on the arg received by outer
+                                                // lambda-fn; i.e. 5
+                                                (x) + 3;
+                          }(5);
+
+    // Print the result.
+    cout << "Value returned by nested-lambda-fns=" << timestwoplusthree << endl;
+    assert(timestwoplusthree == 13);
 
     TEST_END();
 }
