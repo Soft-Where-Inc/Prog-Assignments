@@ -38,6 +38,7 @@ void test_lambda_expr_basic(void);
 void test_binding_rules_for_captured_variables(void);
 void test_define_lambda_and_invoke(void);
 void test_lambda_expr_as_fn_arg_to_api(void);
+void test_use_lambda_expr_to_split_into_even_odd_lists(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 
@@ -59,6 +60,8 @@ TEST_FNS Test_fns[] = {
                                             , test_define_lambda_and_invoke }
                 , { "test_lambda_expr_as_fn_arg_to_api"
                                             , test_lambda_expr_as_fn_arg_to_api }
+                , { "test_use_lambda_expr_to_split_into_even_odd_lists"
+                                            , test_use_lambda_expr_to_split_into_even_odd_lists }
                 , { "test_doSortFloats"     , test_doSortFloats }
                 , { "test_doSortFloatsUsingLambdaFns"
                                             , test_doSortFloatsUsingLambdaFns }
@@ -484,6 +487,69 @@ test_lambda_expr_as_fn_arg_to_api(void)
     } else {
         cout << "The list contains no odd numbers." << endl;
     }
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Test case to demonstrate use of partition() with a common lambda expression
+ * split a list of numbers into even / odd lists.
+ * (Developed based on example 2 from [2] and help from ChatGPT.)
+ * -----------------------------------------------------------------------------
+ */
+void
+test_use_lambda_expr_to_split_into_even_odd_lists(void)
+{
+    TEST_START();
+
+    list<int> numbers = {11, 42, 33, 5, 6, 9, 20, 10};
+    cout << "List of numbers: " << numbers << endl;
+
+    // ---- Sub-case for even numbers list ----
+
+    // Define lambda functions to decide if a number is odd / even.
+    auto is_even = [](const int n) { return ((n % 2) == 0); };
+
+    // Using std::partition to partition the numbers, with even #s at the head.
+    auto partition_point = std::partition(numbers.begin(), numbers.end(), is_even);
+
+    // Copying the even numbers to the even_nos list
+    list<int> even_nos = {};
+    std::copy_if(numbers.begin(), partition_point, std::back_inserter(even_nos),
+                 is_even);
+
+    // NOTE: Cannot use the following: Unlike std::vector, std::list does not
+    // provide random access iterators, so you cannot directly use std::sort
+    // with begin() and end() iterators from a std::list.
+    // std::sort(even_nos.begin(), even_nos.end());
+    // Instead do this:
+
+    even_nos.sort();
+
+    cout << "List of even numbers: " << even_nos << endl;
+
+    list<int> exp_even_nos_list = {6, 10, 20, 42};
+    assert(even_nos == exp_even_nos_list);
+
+    // ---- Sub-case for odd numbers list ----
+
+    auto is_odd  = [](const int n) { return ((n % 2) == 1); };
+
+    // Using std::partition to partition the numbers, with odd #s at the head.
+    partition_point = std::partition(numbers.begin(), numbers.end(), is_odd);
+
+    // Copying the odd numbers to the odd_nos list
+    list<int> odd_nos = {};
+    std::copy_if(numbers.begin(), partition_point, std::back_inserter(odd_nos),
+                 is_odd);
+
+    odd_nos.sort();
+
+    cout << "List of odd numbers: " << odd_nos << endl;
+
+    list<int> exp_odd_nos_list = {5, 9, 11, 33};
+    assert(odd_nos == exp_odd_nos_list);
 
     TEST_END();
 }
