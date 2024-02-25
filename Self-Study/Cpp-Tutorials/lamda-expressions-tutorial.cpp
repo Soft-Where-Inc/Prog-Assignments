@@ -11,6 +11,12 @@
  *
  * Usage: g++ -o lamda-expressions-tutorial lamda-expressions-tutorial.cpp
  *
+ * Test case test_lambda_constexpr() needs C++17:
+ *  # warning: 'constexpr' on lambda expressions is a C++17 extension
+ *  # error: constexpr variable cannot have non-literal type 'const (lambda ...)'
+ *
+ *    $ g++ -std=c++17 -o lamda-expressions-tutorial lamda-expressions-tutorial.cpp
+ *
  * History:
  *  RESOLVE: Started ... Incomplete.
  *  RESOLVE: TODO from [2]:
@@ -48,6 +54,7 @@ void test_doSortFloatsUsingLambdaFns(void);
 void test_nested_lambda_exprs(void);
 void test_lambda_expr_in_function(void);
 void test_mutable_var_captured_by_value(void);
+void test_lambda_constexpr(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -78,6 +85,7 @@ TEST_FNS Test_fns[] = {
                                             , test_lambda_expr_in_function }
                 , { "test_mutable_var_captured_by_value"
                                             , test_mutable_var_captured_by_value }
+                , { "test_lambda_constexpr" , test_lambda_constexpr }
     };
 
 // Test start / end info-msg macros
@@ -809,6 +817,44 @@ test_mutable_var_captured_by_value(void)
 
     assert(n_oldval == n_by_val);
     assert(m_by_ref == 5);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Demonstrate use of CONSTREXPR syntax-keyword to specify that the entire
+ * lambda expression is a constant expression, as all its input args are
+ * known to be constant at compile time. This allows the compiler to generate
+ * the result at compile-time in all instances where this lambda expr occurs.
+ *
+ * Ref [1] and example from Chat-GPT.
+ */
+constexpr double square(double x) { return x * x; }
+
+void
+test_lambda_constexpr(void)
+{
+    TEST_START();
+
+
+    // 1st constexpr is for the variable being declared.
+                            // Define a polynomial function: f(x) = x^2 + 3x + 2
+                            // This 'constexpr' specifies that the lambda-expr
+                            // itself is a compile-time constant.
+    constexpr auto polynomial = [](double x) constexpr
+                                {
+                                    return square(x) + 3 * x + 2;
+                                };
+
+    constexpr double result1 = polynomial(2.0);   // Compile-time computation
+    constexpr double result2 = polynomial(3.0);   // Compile-time computation
+
+    cout << "f(x)=x^2 + 3x + 2;";
+    cout << ", polynomial(2.0)=" << result1;
+    cout << ", polynomial(3.0)=" << result2 << endl;
+    assert(result1 == 12);
+    assert(result2 == 20);
 
     TEST_END();
 }
