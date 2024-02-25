@@ -17,6 +17,7 @@
  */
 
 #include <iostream>
+#include <list>
 #include <vector>
 
 using namespace std;
@@ -35,6 +36,8 @@ void test_msg(string);
 
 void test_lambda_expr_basic(void);
 void test_binding_rules_for_captured_variables(void);
+void test_define_lambda_and_invoke(void);
+void test_lambda_expr_as_fn_arg_to_api(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 
@@ -52,6 +55,10 @@ TEST_FNS Test_fns[] = {
                 , { "test_lambda_expr_basic", test_lambda_expr_basic }
                 , { "test_binding_rules_for_captured_variables"
                                             , test_binding_rules_for_captured_variables }
+                , { "test_define_lambda_and_invoke"
+                                            , test_define_lambda_and_invoke }
+                , { "test_lambda_expr_as_fn_arg_to_api"
+                                            , test_lambda_expr_as_fn_arg_to_api }
                 , { "test_doSortFloats"     , test_doSortFloats }
                 , { "test_doSortFloatsUsingLambdaFns"
                                             , test_doSortFloatsUsingLambdaFns }
@@ -76,6 +83,17 @@ ostream& operator<<(ostream& os, const vector<S>& vector)
 {
     // Printing all the elements using <<
     for (auto element : vector) {
+        os << element << " ";
+    }
+    return os;
+}
+
+// Overload << operator to print all elements in a list.
+template <typename S>
+ostream& operator<<(ostream& os, const list<S>& listl)
+{
+    // Printing all the elements using <<
+    for (auto element : listl) {
         os << element << " ";
     }
     return os;
@@ -393,6 +411,79 @@ test_binding_rules_for_captured_variables(void)
     cout << "i=" << i << ", j=" << j
          << ", lambdafn(i, j)=" << rv << endl;
     assert(rv == exp_rv);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Test to define-and-invoke lambda expression with parameters immediately
+ * supplied as part of the definition-invocation. From [2]
+ * -----------------------------------------------------------------------------
+ */
+ void
+ test_define_lambda_and_invoke(void)
+ {
+    TEST_START();
+
+    auto rv = [] (int x, int y) { return x + y; }(5, 4);
+    auto exp_rv = (5 + 4);
+    cout << "Anon define-and-exec-SUM(5,4)=" << rv << endl;
+    assert(rv == exp_rv);
+
+    // NOTE: You cannot invoke this lambda expression with float params,
+    // as that will need type conversion. You will get a compiler warning.
+    // rv = [] (int x, int y) { return x + y; }(5.5, 4.4);
+
+    TEST_END();
+ }
+
+/*
+ * -----------------------------------------------------------------------------
+ * Test case to demonstrate how-to use a lambda expression (function) as an
+ * argument to an interface [here, std::find_if()] that needs a comparison
+ * function to implement the semantic; here find_if().
+ * (Developed based on example 2 from [2])
+ * -----------------------------------------------------------------------------
+ */
+void
+test_lambda_expr_as_fn_arg_to_api(void)
+{
+    TEST_START();
+
+    list<int> numbers = {11, 42, 33, 5, 6, 9, 20, 10};
+    const int exp_1st_even = 42;
+    const int exp_1st_odd  = 11;
+
+    cout << "List of numbers: " << numbers << endl;
+
+    // Use the find_if() and a lambda expr to locate 1st even / odd number.
+    const list<int>::const_iterator even_nos = find_if(numbers.begin(),
+                                                       numbers.end(),
+                                                       // Inline lambda expression.
+                                                       [](int n) {return (n % 2) == 0;}
+                                                       );
+
+    // Print the result.
+    if (even_nos != numbers.end()) {
+        assert(*even_nos == exp_1st_even);
+        cout << "The first even number in the list is " << *even_nos << "." << endl;
+    } else {
+        cout << "The list contains no even numbers." << endl;
+    }
+
+    const list<int>::const_iterator odd_nos = find_if(numbers.begin(),
+                                                      numbers.end(),
+                                                      // Inline lambda expression.
+                                                       [](int n) {return (n % 2) == 1;}
+                                                       );
+    // Print the result.
+    if (odd_nos != numbers.end()) {
+        assert(*odd_nos == exp_1st_odd);
+        cout << "The first odd number in the list is " << *odd_nos << "." << endl;
+    } else {
+        cout << "The list contains no odd numbers." << endl;
+    }
 
     TEST_END();
 }
