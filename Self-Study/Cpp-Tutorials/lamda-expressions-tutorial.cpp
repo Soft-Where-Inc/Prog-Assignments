@@ -34,6 +34,7 @@ void test_that(void);
 void test_msg(string);
 
 void test_lambda_expr_basic(void);
+void test_binding_rules_for_captured_variables(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 
@@ -49,6 +50,8 @@ TEST_FNS Test_fns[] = {
                   { "test_this"             , test_this }
                 , { "test_that"             , test_that }
                 , { "test_lambda_expr_basic", test_lambda_expr_basic }
+                , { "test_binding_rules_for_captured_variables"
+                                            , test_binding_rules_for_captured_variables }
                 , { "test_doSortFloats"     , test_doSortFloats }
                 , { "test_doSortFloatsUsingLambdaFns"
                                             , test_doSortFloatsUsingLambdaFns }
@@ -252,16 +255,30 @@ test_msg(string msg)
  * Based on [1] and [2].
  *
  * Parts of a lambda expression:
- *  [] [&] [=]  : Capture clause
- *  ()          : Optional parameter list
+ *  []          : Capture clause; No captured variables; i.e. no local variables
+ *                can be referenced in the body of the lambda expression/function.
+ *  [&]         : All local variables visible in the scope of the lamda can be
+ *                used in the body of the lambda by reference.
+ *  [=]         : All local variables visible in the scope of the lamda can be
+ *                used in the body of the lambda by value.
+ *  ()          : Optional parameter list, in declaration; Reqd when invoking
  *  mutable     : Optional keyword
  *  throw()     : Optional exception-specification
  *  -> <type>   : Trailing return-type
+ * -----------------------------------------------------------------------------
  */
 void
 test_lambda_expr_basic(void)
 {
     TEST_START();
+
+    // ----
+    // Absolute minimum syntax needed to define a lambda expression.
+    //  - You -NEED- at least the empty '[]' when declaring the expr
+    //  - You -NEED- at least an empty '()' when invoking lambda expr/fn.
+    auto lambdafnMin = [] { return (42); };
+    cout << "lambdafnMin()=" << lambdafnMin() << endl;
+    assert(lambdafnMin() == 42);
 
     // -----
     // Assign the lambda expression that adds two numbers to an auto variable.
@@ -277,7 +294,7 @@ test_lambda_expr_basic(void)
 
     cout << "f2_sum_x_incr_y(2, 3)=" << f2_sum_x_incr_y(2, 3) << endl;
 
-    // -----
+    // ----- Trailing return type usage ----
     // Define return type of the anonymous function using "-> <type>" clause
     // Even though the fn takes floats, and computes result as a float, the
     // value returned will be converted to 'int'.
@@ -302,6 +319,83 @@ test_lambda_expr_basic(void)
     TEST_END();
 }
 
+/*
+ * -----------------------------------------------------------------------------
+ * Test case to exercise different forms of captured variables; i.e. the stuff
+ * mentioned enclosed in [], referencing to local variables declared in the
+ * scope of the definition of the lambda expression. From [2].
+ *
+ * Per the standard, captured variables:
+ *  - By value, are bound when the expression is declared. So, if this variable
+ *    changes its value after the expression was created, the changed value
+ *    will -not- be "seen" inside the lambda expression.
+ *
+ *  - By reference, are also bound when the expression is declared. As the
+ *    binding is by reference, any change in value of this variable in the
+ *    outer-scope, -will- be "seen" inside the lambda expression.
+ * -----------------------------------------------------------------------------
+ */
+void
+test_binding_rules_for_captured_variables(void)
+{
+    TEST_START();
+
+    int i = 0;
+    int j = 5;
+
+    // The following lambda expression captures i by value and j by reference.
+    function<int (void)> lambdaexpr = [i, &j] { return i + j; };
+
+    auto rv = lambdaexpr();
+    cout << "lambdaexpr()=" << rv << endl;
+    assert(rv == j);
+
+    // Change the values of i and j. Only new-value of 'j' will be reflected.
+    i = 22;
+    j = 42;
+
+    // Call f and print its result.
+    rv = lambdaexpr();
+    cout << "lambdaexpr()=" << rv << endl;
+    assert(rv == j);
+
+    i = 0;  // Reset so we go back to initial value.
+    j = 21;
+
+    // ---------------------------------------------------------------------
+    // The behaviour is slightly different if you have both parameters to
+    // the lambda function and also captured variables. The same rules as
+    // given above will apply to the captured variables. But if the lambda
+    // function is invoked with a changed 'i', that will be reflected in the
+    // result.
+    // NOTE: This lambda-function is defined both with captured variables
+    //        (i, j) that are in-scope of this declaration, -AND- also takes
+    //        (param_i, param_j) that are passed when this fn will be invoked.
+    // ---------------------------------------------------------------------
+    auto lambdafn = [i, &j](const int param_i, const int param_j)
+                           {
+                                return (i + j + param_i + param_j);
+                           };
+
+    auto exp_rv = 42;
+    rv = lambdafn(i, j);
+
+    cout << "i=" << i << ", j=" << j
+         << ", lambdafn(i, j)=" << rv << endl;
+    assert(rv == exp_rv);
+
+    // Change the value of 'i', which is also used as param_i. This will be
+    // reflected in the computed sum.
+    i = 2;
+    exp_rv = 44;
+    rv = lambdafn(i, j);
+
+    cout << "i=" << i << ", j=" << j
+         << ", lambdafn(i, j)=" << rv << endl;
+    assert(rv == exp_rv);
+
+    TEST_END();
+}
 
 /*
  * -----------------------------------------------------------------------------
