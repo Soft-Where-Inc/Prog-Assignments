@@ -13,6 +13,10 @@
  *
  * History:
  *  RESOLVE: Started ... Incomplete.
+ *  RESOLVE: TODO from [2]:
+ *      - Higher-Order Lambda Functions
+ *      - Using Lambda Expressions with Templates
+ *      - Handling Exceptions
  * -----------------------------------------------------------------------------
  */
 
@@ -43,6 +47,7 @@ void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 void test_nested_lambda_exprs(void);
 void test_lambda_expr_in_function(void);
+void test_mutable_var_captured_by_value(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -71,6 +76,8 @@ TEST_FNS Test_fns[] = {
                                             , test_nested_lambda_exprs }
                 , { "test_lambda_expr_in_function"
                                             , test_lambda_expr_in_function }
+                , { "test_mutable_var_captured_by_value"
+                                            , test_mutable_var_captured_by_value }
     };
 
 // Test start / end info-msg macros
@@ -765,6 +772,43 @@ test_lambda_expr_in_function(void)
     Scale scale(5);
     cout << "Numbers=[ " << numbers << "] Scaled by 5: ";
     scale.applyScale(numbers);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Demonstrate use of MUTABLE syntax-keyword. This allows changing captured
+ * variables that are passed-by value from outer-scope to the lambda's body.
+ * Such variable can be updated, locally, within the lambda's body. And as the
+ * variable is passed-by-value, the changed value will not be seen in the variable
+ * after the lambda function returns. (From [1])
+ * -----------------------------------------------------------------------------
+ */
+void
+test_mutable_var_captured_by_value(void)
+{
+    TEST_START();
+
+    int m_by_ref = 0;
+    int n_by_val = 0;
+    int m_oldval = m_by_ref;
+    int n_oldval = n_by_val;
+
+    // This is just an inline lambda expression that modifies one of the
+    // captured variables by an expession. The lambda expression does not
+    // return a value; just does an 'in-place' update.
+    // Will raise a compiler error w/o MUTABLE keyword, as we do ++n-by_val.
+    // error: cannot assign to a variable captured by copy in a non-mutable lambda
+    [&, n_by_val](int a) mutable { m_by_ref = ++n_by_val + a; }(4);
+
+    cout << "m_oldval="   << m_oldval
+         << ", m_newval=" << m_by_ref
+         << ", n_by_val=" << n_by_val
+         << endl;
+
+    assert(n_oldval == n_by_val);
+    assert(m_by_ref == 5);
 
     TEST_END();
 }
