@@ -42,6 +42,7 @@ void test_use_lambda_expr_to_split_into_even_odd_lists(void);
 void test_doSortFloats(void);
 void test_doSortFloatsUsingLambdaFns(void);
 void test_nested_lambda_exprs(void);
+void test_lambda_expr_in_function(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -68,6 +69,8 @@ TEST_FNS Test_fns[] = {
                                             , test_doSortFloatsUsingLambdaFns }
                 , { "test_nested_lambda_exprs"
                                             , test_nested_lambda_exprs }
+                , { "test_lambda_expr_in_function"
+                                            , test_lambda_expr_in_function }
     };
 
 // Test start / end info-msg macros
@@ -718,6 +721,50 @@ test_nested_lambda_exprs(void)
     // Print the result.
     cout << "Value returned by nested-lambda-fns=" << timestwoplusthree << endl;
     assert(timestwoplusthree == 13);
+
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Demonstrate use of lambda expressions in functions and use of for_each()
+ * syntax to iterate through each element in a vector. Lifted from [2].
+ * -----------------------------------------------------------------------------
+ */
+
+// Define a Scale class, to specify scaling factor to be applied to a number.
+class Scale
+{
+  public:
+    // The constructor.
+    explicit Scale(int scale) : _scale(scale) {}
+
+    // Prints the product of each element in a vector object and the scale factor
+    void applyScale(const vector<int>& v) const
+    {
+        // Define lambda function that captures the _scale value by reference.
+        // Apply it to each term of the input vector.
+        for_each(v.begin(), v.end(), [=](int n) { cout << n * _scale << " "; });
+    }
+
+  private:
+    int _scale;
+};
+
+void
+test_lambda_expr_in_function(void)
+{
+    TEST_START();
+
+    vector<int> numbers = {};
+    numbers.push_back(3);
+    numbers.push_back(2);
+    numbers.push_back(1);
+    numbers.push_back(20);
+
+    Scale scale(5);
+    cout << "Numbers=[ " << numbers << "] Scaled by 5: ";
+    scale.applyScale(numbers);
 
     TEST_END();
 }
