@@ -7,15 +7,17 @@
  * Ref:
  *  [1] https://dev.to/atimin/the-simplest-example-of-coroutines-in-c20-4l7a
  *
- * Usage: g++ -o coroutines-simplest-example coroutines-simplest-example.cpp
+ * Usage: g++ -std=c++20 -o coroutines-simplest-example coroutines-simplest-example.cpp
  *        ./coroutines-simplest-example [test_*]
  *        ./coroutines-simplest-example [--help | test_<something> | test_<prefix> ]
  *
  * History:
+ *  Sun, 25.Feb.2024; 5pm: Deepu called from DC. Erin had some meetings with
+ *  senators for his Non-profit work. Deepu is chaperoning him there for 3 days.
  * -----------------------------------------------------------------------------
  */
 #include <iostream>
-#include <coroutine>
+#include <experimental/coroutine>
 #include <thread>
 #include <queue>
 #include <functional>
@@ -60,11 +62,13 @@ struct sleep {
 
     constexpr bool await_ready() const noexcept { return false; }
 
-    void await_suspend(std::coroutine_handle<> h) const noexcept {
+    void
+    await_suspend(std::experimental::coroutine_handle<> corhdl) const noexcept
+    {
         auto start = std::chrono::steady_clock::now();
-        task_queue.push([start, h, d = delay] {
+        task_queue.push([start, corhdl, d = delay] {
             if (decltype(start)::clock::now() - start > d) {
-                h.resume();
+                // corhdl.resume();
                 return true;
             } else {
                 return false;
@@ -78,30 +82,64 @@ struct sleep {
 };
 
 
+/*
+ *
+ * From ChatGPT, to debug this error:
+ *
+ *  error: the coroutine promise type 'promise_type' must declare either 'return_value' or 'return_void'
+ *
+ * In C++ coroutines, the promise type is a structure or class defined within
+ * the coroutine type. It is responsible for managing the coroutine's state,
+ * including the result value or the absence of a result. The promise type
+ * typically contains methods that are used during the coroutine's execution,
+ * such as return_value() or return_void().
+ */
 struct Task {
+
+    // ------------------------------------------------------------------------
+    // NOTE: Interface of std::experimental::coroutine_traits requires a
+    //       member defined with exactly 'promise_type' name. Otherwise, you
+    //       will get a compiler error.
     struct promise_type {
         promise_type() = default;
         Task get_return_object() { return {}; }
-        std::suspend_never initial_suspend() { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
+        std::experimental::suspend_never initial_suspend() { return {}; }
+        std::experimental::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
+
+        // Define return_value() if coroutine returns a value
+        // (See note above about diagnostics from Chat.)
+        // void return_value(int value) {}
+        // void return_value(void) {} // Modify return_value() to accept void
+
+        // In this case, coroutine does not return anything. So define this.
+        void return_void() {}
     };
 };
 
-Task foo1() noexcept {
+/*
+ * You have to define these functions as returning Task{}, which is a struct
+ * defined with a co-routine type. (You cannot change this to return void.)
+ */
+Task
+foo1() noexcept {
     std::cout << "1. hello from foo1" << std::endl;
     for (int i = 0; i < 10; ++i) {
         co_await sleep{10};
         std::cout << "2. hello from foo1" << std::endl;
     }
+    co_return; // Returns nothing.
 }
 
-Task foo2() noexcept {
+Task
+foo2() noexcept {
     std::cout << "1. hello from foo2" << std::endl;
     for (int i = 0; i < 10; ++i) {
         co_await sleep{10};
         std::cout << "2. hello from foo2" << std::endl;
     }
+    // As coroutine returns void, we can skip this stmt as well.
+    // co_return; // Returns nothing.
 }
 
 /*
