@@ -4,8 +4,17 @@
  * Simplest example of using Co-routines in C++ downloaded from the net.
  * By Alexey Timin.
  *
+ * Updated commentary and fixed compilation errors, and changes to get the
+ * basic program to run on my Mac using these references:
+ *
  * Ref:
  *  [1] https://dev.to/atimin/the-simplest-example-of-coroutines-in-c20-4l7a
+ *
+ *  [2] https://www.youtube.com/watch?v=8sEe-4tig_A&t=1983
+ *      CppCon 2022: C++20's Coroutines for Beginners - Andreas Fertig
+ *
+ *  [3] https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/coroutines-c++20/
+ *      Simon Tatham, 2023-08-06
  *
  * Usage: g++ -std=c++20 -o coroutines-simplest-example coroutines-simplest-example.cpp
  *        ./coroutines-simplest-example [test_*]
@@ -52,30 +61,105 @@ TEST_FNS Test_fns[] = {
 
 /*
  * *****************************************************************************
- * Sample code copied from above tutorial.
+ * Begin Coroutines Sample code copied from above tutorial.
  * *****************************************************************************
  */
-std::queue<std::function<bool()>> task_queue;
+/*
+ * *****************************************************************************
+ * Task_queue: Global variable: Represents a queue of tasks, where each task
+ * is a callable target (function) that takes no arguments and returns a bool
+ * value.
+ *
+ * From Chat: std::function<bool()>: std::function is a polymorphic function
+ * wrapper provided by the C++ Standard Library. It can hold any callable
+ * target (functions, lambdas, function objects, etc.) that matches a specified
+ * signature.
+ *
+ * Here, bool() specifies the return type in the signature of the callable
+ * target that std::function can hold. The signature indicates that the target
+ * callable should take no arguments and return a bool value.
+ * *****************************************************************************
+ */
+std::queue<std::function<bool()>> Task_queue;
 
+/*
+ * *****************************************************************************
+ * From ChatGPT: This code block implements the await_suspend() function,
+ * which is used in coroutines to suspend execution until a certain condition
+ * (in this case, a time delay) is met. It pushes a lambda function into a
+ * task queue (Task_queue), which will be executed asynchronously.
+ * The lambda checks if the elapsed time exceeds a specified delay and resumes
+ * the coroutine handle accordingly.
+ * *****************************************************************************
+ */
 struct sleep {
-    sleep(int n) : delay{n} {}
+
+    // Define a constructor for the sleep struct that takes an integer
+    // parameter n and initializes the member variable `delay` with the value
+    // of n. The empty constructor body indicates that no additional operations
+    // are performed during initialization.
+    // However, we enhanced the interface to accept the calling fn's name,
+    // which then gets printed in the body, for diagnostics.
+    sleep(int n, string callerfn) : delay{n} {
+        cout << callerfn << ":Sleep n=" << n << endl;
+    }
 
     constexpr bool await_ready() const noexcept { return false; }
 
+    // Mandatory to have a method named exactly 'await_suspend()' in this
+    // object. The call to "co_await sleep()" to instantiate one such object
+    // will go through the STLibrary's coroutine interfaces, which will look
+    // for a method named exactly like so.
+    // (If you change the name, it will raise this error:
+    // error: no member named 'await_suspend' in 'sleep'.)
     void
     await_suspend(std::experimental::coroutine_handle<> corhdl) const noexcept
     {
+        // Record the start time before the async operation begins.
         auto start = std::chrono::steady_clock::now();
-        task_queue.push([start, corhdl, d = delay] {
-            if (decltype(start)::clock::now() - start > d) {
-                // corhdl.resume();
-                return true;
-            } else {
-                return false;
-            }
-        });
+
+        cout << __func__ << ":" << __LINE__ << ": Task_queue.push()" << endl;
+        // --------------------------------------------------------------------
+        // From Chat: Push a lambda-function taking 3 variables captured
+        // by-value, into the global Task_queue. This lambda represents the
+        // asynchronous operation that needs to be suspended until completion.
+        //
+        // When this queued-task will [eventually] execute, the lambda-fn
+        // will decide if the delay has elapsed and [may] resume the
+        // coroutine. If the coroutine was resumed, the task is successful.
+        // Otherwise, it's deemed a failure (still some more time has to pass).
+        // --------------------------------------------------------------------
+        Task_queue.push([start, corhdl, d = delay]
+                        {
+                            // Check if the elapsed-time is greater than the
+                            // specified 'delay' ('d'). If so, the coroutine,
+                            // corhdl, can be resumed.
+                            if (decltype(start)::clock::now() - start > d) {
+                                cout << __func__ << ":" << __LINE__
+                                     << ": await_suspend(), delay d="
+                                     << ", returns w/o resume coroutine."
+                                     << endl;
+
+                                // corhdl.resume();
+
+                                // Success: Asynchronous operation has completed
+                                return true;
+                            } else {
+                                // Asynchronous operation is still pending
+                                // and needs to wait.
+                                return false;
+                            }
+                        });
     }
 
+    // Again: Mandatory to have a method named exactly like this below.
+    // Declares a coroutine operation that doesn't return any value and doesn't
+    // perform any specific action when the coroutine is resumed. It's a
+    // placeholder for a coroutine operation that might need to be defined in
+    // certain coroutine implementations but doesn't require any specific
+    // behavior in this context.
+    // This operation doesn't modify the state of the object (const) and doesn't
+    // throw exceptions.
     void await_resume() const noexcept {}
 
     std::chrono::milliseconds delay;
@@ -83,6 +167,12 @@ struct sleep {
 
 
 /*
+ * *****************************************************************************
+ * Task{} - This is the coroutine's wrapper type. This is also the return type
+ * of the coroutine itself [See foo1() and foo2() below.]
+ *
+ * Technically, a coroutine is a Finite State machine that can be customized
+ * by the members of the mandatory promise_type, embedded in this wrapper type.
  *
  * From ChatGPT, to debug this error:
  *
@@ -93,17 +183,44 @@ struct sleep {
  * including the result value or the absence of a result. The promise type
  * typically contains methods that are used during the coroutine's execution,
  * such as return_value() or return_void().
+ * *****************************************************************************
  */
 struct Task {
 
     // ------------------------------------------------------------------------
-    // NOTE: Interface of std::experimental::coroutine_traits requires a
-    //       member defined with exactly 'promise_type' name. Otherwise, you
-    //       will get a compiler error.
+    // NOTE: Mandatory part of the interface of std::experimental::coroutine_traits
+    //       It requires a member defined with exactly 'promise_type' name.
+    //       Otherwise, you will get a compiler error.
+    //
+    // Here's the mapping from the member fields of this promise_type() to the
+    // coroutine 'action-verbs'. A specific instance of promise_type() may
+    // choose to implement only some of these methods, leaving the rest to the
+    // default behaviour: (From [2])
+    //
+    //  - co_yield  -> promise_type.yield_value();
+    //  - co_await  -> promise_type.await_transform();
+    //  - co_return -> promise_type.return_value() / return_void();
+    // ------------------------------------------------------------------------
     struct promise_type {
+        // Default constructor
         promise_type() = default;
+
+
+        // ---------------------------------------------------------------------
+        // Everything below here is "customization" [2] for our specific
+        // use-case of a co-routine.
+        // ---------------------------------------------------------------------
+
+        // Compiler invokes this method when it first sets-up the coroutine.
+        // Method responsible for creating the object that will represent the
+        // result of the coroutine. In this case, it returns a default-constructed
+        // Task object.
         Task get_return_object() { return {}; }
+
+        // Specifies that the coroutine should be initially suspended.
         std::experimental::suspend_never initial_suspend() { return {}; }
+        // std::experimental::suspend_always initial_suspend() { return {}; }
+
         std::experimental::suspend_always final_suspend() noexcept { return {}; }
         void unhandled_exception() {}
 
@@ -118,25 +235,44 @@ struct Task {
 };
 
 /*
+ * *****************************************************************************
  * You have to define these functions as returning Task{}, which is a struct
  * defined with a co-routine type. (You cannot change this to return void.)
+ * These two functions are coroutines.
+ * *****************************************************************************
  */
 Task
 foo1() noexcept {
-    std::cout << "1. hello from foo1" << std::endl;
-    for (int i = 0; i < 10; ++i) {
-        co_await sleep{10};
-        std::cout << "2. hello from foo1" << std::endl;
+    cout << "[" << __func__ << ":" << __LINE__ << "]: Hello! "
+         << endl;
+
+    auto i = 0;
+    // Use diff ictrs, passed as delay param to sleep(), so we can see
+    // in trace outputs which function is being called.
+    for (; i < 10; i++) {
+        cout << "[" << __func__ << ":" << __LINE__
+             << "]: Hello ... Going to sleep "
+             << endl;
+        co_await sleep{i, __func__};
     }
+    cout << "[" << __func__ << ":" << __LINE__ << "]:"
+         << "Finished, i=" << i
+         << endl;
     co_return; // Returns nothing.
 }
 
 Task
 foo2() noexcept {
-    std::cout << "1. hello from foo2" << std::endl;
-    for (int i = 0; i < 10; ++i) {
-        co_await sleep{10};
-        std::cout << "2. hello from foo2" << std::endl;
+    cout << "[" << __func__ << ":" << __LINE__ << "]: Hello! "
+         << endl;
+
+    // Use diff jctrs, passed as delay param to sleep(), so we can see
+    // in trace outputs which function is being called.
+    for (int j = 10; j < 20; j++) {
+        cout << "[" << __func__ << ":" << __LINE__
+             << "]: Hello ... Going to sleep "
+             << endl;
+        co_await sleep{j, __func__};
     }
     // As coroutine returns void, we can skip this stmt as well.
     // co_return; // Returns nothing.
@@ -159,12 +295,12 @@ main(const int argc, const char *argv[])
     foo1();
     foo2();
 
-    while (!task_queue.empty()) {
-        auto task = task_queue.front();
+    while (!Task_queue.empty()) {
+        auto task = Task_queue.front();
         if (!task()) {
-            task_queue.push(task);
+            Task_queue.push(task);
         }
-        task_queue.pop();
+        Task_queue.pop();
 
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
