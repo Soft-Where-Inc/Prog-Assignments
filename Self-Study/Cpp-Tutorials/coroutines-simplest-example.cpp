@@ -2,8 +2,10 @@
  * coroutines-simplest-example.cpp:
  * -----------------------------------------------------------------------------
  * Simplest example of using Co-routines in C++ downloaded from the net.
+ * By Alexey Timin.
  *
  * Ref:
+ *  [1] https://dev.to/atimin/the-simplest-example-of-coroutines-in-c20-4l7a
  *
  * Usage: g++ -o coroutines-simplest-example coroutines-simplest-example.cpp
  *        ./coroutines-simplest-example [test_*]
@@ -13,6 +15,10 @@
  * -----------------------------------------------------------------------------
  */
 #include <iostream>
+#include <coroutine>
+#include <thread>
+#include <queue>
+#include <functional>
 
 using namespace std;
 
@@ -44,6 +50,62 @@ TEST_FNS Test_fns[] = {
 
 /*
  * *****************************************************************************
+ * Sample code copied from above tutorial.
+ * *****************************************************************************
+ */
+std::queue<std::function<bool()>> task_queue;
+
+struct sleep {
+    sleep(int n) : delay{n} {}
+
+    constexpr bool await_ready() const noexcept { return false; }
+
+    void await_suspend(std::coroutine_handle<> h) const noexcept {
+        auto start = std::chrono::steady_clock::now();
+        task_queue.push([start, h, d = delay] {
+            if (decltype(start)::clock::now() - start > d) {
+                h.resume();
+                return true;
+            } else {
+                return false;
+            }
+        });
+    }
+
+    void await_resume() const noexcept {}
+
+    std::chrono::milliseconds delay;
+};
+
+
+struct Task {
+    struct promise_type {
+        promise_type() = default;
+        Task get_return_object() { return {}; }
+        std::suspend_never initial_suspend() { return {}; }
+        std::suspend_always final_suspend() noexcept { return {}; }
+        void unhandled_exception() {}
+    };
+};
+
+Task foo1() noexcept {
+    std::cout << "1. hello from foo1" << std::endl;
+    for (int i = 0; i < 10; ++i) {
+        co_await sleep{10};
+        std::cout << "2. hello from foo1" << std::endl;
+    }
+}
+
+Task foo2() noexcept {
+    std::cout << "1. hello from foo2" << std::endl;
+    for (int i = 0; i < 10; ++i) {
+        co_await sleep{10};
+        std::cout << "2. hello from foo2" << std::endl;
+    }
+}
+
+/*
+ * *****************************************************************************
  * main()
  * *****************************************************************************
  */
@@ -54,6 +116,21 @@ main(const int argc, const char *argv[])
     cout << argv[0] << ": " << hello_msg << " (argc=" << argc << ")" << endl;
 
     int rv = 0;
+
+    // Sample code copied from above tutorial.
+    foo1();
+    foo2();
+
+    while (!task_queue.empty()) {
+        auto task = task_queue.front();
+        if (!task()) {
+            task_queue.push(task);
+        }
+        task_queue.pop();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return 0;
 
     // Run all test cases if no args are provided.
     if (argc == 1) {
