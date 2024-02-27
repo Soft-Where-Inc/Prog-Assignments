@@ -113,7 +113,7 @@ struct sleep {
     // (If you change the name, it will raise this error:
     // error: no member named 'await_suspend' in 'sleep'.)
     void
-    await_suspend(std::experimental::coroutine_handle<> corhdl) const noexcept
+    await_suspend(std::experimental::coroutine_handle<> corhdl) noexcept
     {
         // Record the start time before the async operation begins.
         auto start = std::chrono::steady_clock::now();
@@ -137,10 +137,15 @@ struct sleep {
                             if (decltype(start)::clock::now() - start > d) {
                                 cout << __func__ << ":" << __LINE__
                                      << ": await_suspend(), delay d="
-                                     << ", returns w/o resume coroutine."
+                                     << std::chrono::milliseconds(d).count()
+                                     << ", returns; resume coroutine."
                                      << endl;
 
-                                // corhdl.resume();
+                                // This jugglery is to workaround following g++
+                                // error: 'this' argument to member function 'resume' has type 'const std::experimental::coroutine_handle<>', but function is not marked const
+                                //
+                                std::experimental::coroutine_handle<> resumehdl = corhdl;
+                                resumehdl.resume();
 
                                 // Success: Asynchronous operation has completed
                                 return true;
