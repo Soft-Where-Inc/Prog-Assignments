@@ -7,6 +7,63 @@
  * Updated commentary and fixed compilation errors, and changes to get the
  * basic program to run on my Mac using these references:
  *
+ * Usage: g++ -std=c++20 -o coroutines-simplest-example coroutines-simplest-example.cpp
+ *        ./coroutines-simplest-example [test_*]
+ *        ./coroutines-simplest-example [--help | test_<something> | test_<prefix> ]
+ *        ./coroutines-simplest-example test_coroutines
+ *
+ * -----------------------------------------------------------------------------
+ *          **** Description of coroutines workflow: ****
+ * -----------------------------------------------------------------------------
+ *
+ * Although [1] claims this to be a "simplest example", it is quite complex.
+ *
+ * - There are 2 coroutine functions: cor_fn1(), cor_fn2(), which have a
+ *   suspend / resume interplay, through the test case method,
+ *   test_coroutines(), that invokes this whole machinery.
+ *
+ * - There is a global Task_queue<>, which is a handle to an anonymous
+ *   lambda function that will be enqueued by 2 coroutine functions.
+ *
+ * - Each coroutine function loops around n-times enqueueing tasks, which
+ *   will add an instance of the lambda-function to the queue. Then, the
+ *   coroutine will be suspended.
+ *
+ *   To trace which coroutine is enqueueing which task, we use distinct
+ *   sleep delay values for each coroutine. cor_fn1() uses [0..5] and
+ *   cor_fn2() uses [6..10]. NIters_coro_1, NIters_coro_2 control the loop
+ *   parameters.
+ *
+ * - When execution continues in the test case, test_coroutines(), we
+ *   execute the 1st task in the queue. "Executing the task" means the lambda
+ *   function that was enqueued will be executed.
+ *
+ *   The _lambda_function()_ will check for sufficient elapsed time, and if
+ *   so, the issuing coroutine will be resumed.
+ *
+ * Execution flow in the test_coroutines() test looks like:
+ *
+ *  - cor_fn1() - enqueue a task. Suspended.
+ *  - cor_fn2() - enqueue a task. Suspended.
+ *  - Control flow continues to test_coroutines(), which will execute the
+ *    task at the head of the queue. And then will dequeue the task.
+ *
+ *    Lock-step coroutine execution begins here:
+ *
+ *      - Exec task enqueued by cor_fn1, which will resume cor_fn1()
+ *      - cor_fn1() enqueues another task. cor_fn1() is suspended.
+ *
+ *      - Exec task enqueued by cor_fn2, which will resume cor_fn2()
+ *      - cor_fn2() enqueues another task. cor_fn2() is suspended.
+ *
+ *      - Exec task enqueued by cor_fn1, which will resume cor_fn1()
+ *      - cor_fn1() enqueues another task. cor_fn1() is suspended.
+ *
+ *      - Exec task enqueued by cor_fn2, which will resume cor_fn2()
+ *      - cor_fn1() enqueues another task. cor_fn2() is suspended.
+ *      ....
+ *
+ * -----------------------------------------------------------------------------
  * Ref:
  *  [1] https://dev.to/atimin/the-simplest-example-of-coroutines-in-c20-4l7a
  *
@@ -15,10 +72,6 @@
  *
  *  [3] https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/coroutines-c++20/
  *      Simon Tatham, 2023-08-06
- *
- * Usage: g++ -std=c++20 -o coroutines-simplest-example coroutines-simplest-example.cpp
- *        ./coroutines-simplest-example [test_*]
- *        ./coroutines-simplest-example [--help | test_<something> | test_<prefix> ]
  *
  * History:
  *  Sun, 25.Feb.2024; 5pm: Deepu called from DC. Erin had some meetings with
@@ -42,6 +95,8 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 
+void test_coroutines(void);
+
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
 typedef struct test_fns
@@ -51,19 +106,28 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
+                          { "test_this"         , test_this }
+                        , { "test_that"         , test_that }
+                        , { "test_coroutines"   , test_coroutines }
                       };
 
 // Test start / end info-msg macros
 #define TEST_START()  printf("%s ", __func__)
 #define TEST_END()    printf(" ...OK\n")
 
+// Fabricate a string to track code-location of call-site.
+#define LOC() \
+    "[" + std::string{__func__} + ":" + std::to_string(__LINE__) + "] "
+
 /*
  * *****************************************************************************
  * Begin Coroutines Sample code copied from above tutorial.
  * *****************************************************************************
  */
+
+constexpr int NIters_coro_1{5};
+constexpr int NIters_coro_2{5};
+
 /*
  * *****************************************************************************
  * Task_queue: Global variable: Represents a queue of tasks, where each task
@@ -101,7 +165,8 @@ struct sleep {
     // However, we enhanced the interface to accept the calling fn's name,
     // which then gets printed in the body, for diagnostics.
     sleep(int n, string callerfn) : delay{n} {
-        cout << callerfn << ":Sleep n=" << n << endl;
+        cout << "Constructor for sleep{} called from '"
+             << callerfn << "', n=" << n << endl;
     }
 
     constexpr bool await_ready() const noexcept { return false; }
@@ -118,7 +183,7 @@ struct sleep {
         // Record the start time before the async operation begins.
         auto start = std::chrono::steady_clock::now();
 
-        cout << __func__ << ":" << __LINE__ << ": Task_queue.push()" << endl;
+        cout << LOC() << "Perform Task_queue.push()" << endl;
         // --------------------------------------------------------------------
         // From Chat: Push a lambda-function taking 3 variables captured
         // by-value, into the global Task_queue. This lambda represents the
@@ -135,8 +200,8 @@ struct sleep {
                             // specified 'delay' ('d'). If so, the coroutine,
                             // corhdl, can be resumed.
                             if (decltype(start)::clock::now() - start > d) {
-                                cout << __func__ << ":" << __LINE__
-                                     << ": await_suspend(), delay d="
+                                cout << LOC()
+                                     << "Lambda-fn(), delay d="
                                      << std::chrono::milliseconds(d).count()
                                      << ", returns; resume coroutine."
                                      << endl;
@@ -202,8 +267,10 @@ struct Task {
     // choose to implement only some of these methods, leaving the rest to the
     // default behaviour: (From [2])
     //
-    //  - co_yield  -> promise_type.yield_value();
-    //  - co_await  -> promise_type.await_transform();
+    //  - co_yield  -> promise_type.yield_value(); Specify a value you want to
+    //                 deliver to someone.
+    //  - co_await  -> promise_type.await_transform(); Indicate a "thing" you
+    //                 want to wait-for. "Wait-for" input value.
     //  - co_return -> promise_type.return_value() / return_void();
     // ------------------------------------------------------------------------
     struct promise_type {
@@ -223,10 +290,16 @@ struct Task {
         Task get_return_object() { return {}; }
 
         // Specifies that the coroutine should be initially suspended.
-        std::experimental::suspend_never initial_suspend() { return {}; }
         // std::experimental::suspend_always initial_suspend() { return {}; }
 
+        // Specifies that the coroutine should not be suspended on startup.
+        // (i.e. before returning to the caller / main() )
+        std::experimental::suspend_never initial_suspend() { return {}; }
+
+        // Specifies what happens when the coroutine termintes. Always use
+        // 'noexcept' as it's difficult to deal with exceptions when terminating.
         std::experimental::suspend_always final_suspend() noexcept { return {}; }
+
         void unhandled_exception() {}
 
         // Define return_value() if coroutine returns a value
@@ -247,40 +320,71 @@ struct Task {
  * *****************************************************************************
  */
 Task
-foo1() noexcept {
-    cout << "[" << __func__ << ":" << __LINE__ << "]: Hello! "
-         << endl;
+cor_fn1() noexcept {
+    // cout << "[" << __func__ << ":" << __LINE__ << "]: Hello! "
+    cout << endl << LOC() + "**** Hello! Starting co-routine 1 ..." << endl;
 
-    auto i = 0;
     // Use diff ictrs, passed as delay param to sleep(), so we can see
     // in trace outputs which function is being called.
-    for (; i < 10; i++) {
-        cout << "[" << __func__ << ":" << __LINE__
-             << "]: Hello ... Going to sleep "
-             << endl;
+    for (auto i = 0; i < NIters_coro_1; i++) {
+        cout << endl << LOC() << "Hello ictr=" << i << "... Going to sleep\n";
+
+        // NOTE: Compiler converts operant to `co_await` into an awaiter object,
+        // which will tell it (the coroutine[?]) how to manage the suspension.
+        // The await_suspend() method defined in the sleep{} object dictates
+        // what action is tken when await is invoked.
         co_await sleep{i, __func__};
     }
-    cout << "[" << __func__ << ":" << __LINE__ << "]:"
-         << "Finished, i=" << i
-         << endl;
     co_return; // Returns nothing.
 }
 
 Task
-foo2() noexcept {
-    cout << "[" << __func__ << ":" << __LINE__ << "]: Hello! "
-         << endl;
+cor_fn2() noexcept {
+    cout << endl << LOC() << "**** Hello! Starting co-routine 2 ..." << endl;
 
     // Use diff jctrs, passed as delay param to sleep(), so we can see
     // in trace outputs which function is being called.
-    for (int j = 10; j < 20; j++) {
-        cout << "[" << __func__ << ":" << __LINE__
-             << "]: Hello ... Going to sleep "
-             << endl;
+    for (int j = NIters_coro_1; j < (NIters_coro_1 + NIters_coro_2); j++) {
+        cout << endl << LOC() << "Hello jctr=" << j << "... Going to sleep\n";
         co_await sleep{j, __func__};
     }
     // As coroutine returns void, we can skip this stmt as well.
     // co_return; // Returns nothing.
+}
+
+/*
+ * Test case to exercise execution of two co-routines, cor_fn1() and cor_fn2().
+ * Sample code copied from above tutorial.
+ */
+void
+test_coroutines(void)
+{
+    TEST_START();
+
+    cor_fn1();
+    cor_fn2();
+
+    cout << endl
+         << LOC() << "Process all tasks till Task_queue() is not empty ..."
+         << "\n\n";
+    while (!Task_queue.empty()) {
+
+        // 'task' is now a handle to the enqueue lambda-fn
+        auto task = Task_queue.front();
+        cout << endl << LOC() << "Executing enqueued task's lambda-fn() ...\n";
+
+        // Execute the lambda function, which will check for elapsed-time
+        // v/s delay required. If sufficient time has elapsed, the lambda-fn
+        // will resume the owning coroutine's handle.
+        if (!task()) {
+            cout << LOC() << "Task is completed.\n";
+            Task_queue.push(task);
+        }
+        Task_queue.pop();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    TEST_END();
 }
 
 /*
@@ -295,21 +399,6 @@ main(const int argc, const char *argv[])
     cout << argv[0] << ": " << hello_msg << " (argc=" << argc << ")" << endl;
 
     int rv = 0;
-
-    // Sample code copied from above tutorial.
-    foo1();
-    foo2();
-
-    while (!Task_queue.empty()) {
-        auto task = Task_queue.front();
-        if (!task()) {
-            Task_queue.push(task);
-        }
-        Task_queue.pop();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    return 0;
 
     // Run all test cases if no args are provided.
     if (argc == 1) {
@@ -364,4 +453,3 @@ test_msg(string msg)
     TEST_START();
     assert(msg == "Hello World.");
 }
-
