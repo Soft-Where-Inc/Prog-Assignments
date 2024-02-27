@@ -1,5 +1,23 @@
-#include <coroutine>
+/*
+ * co_demo.resume.cpp:
+ * -----------------------------------------------------------------------------
+ * By Alexey Timin.
+ *
+ * Updated commentary and fixed compilation errors, and changes to get the
+ * basic program to run on my Mac using these references:
+ *
+ * Usage: g++ -std=c++20 -o co_demo.resume co_demo.resume.cpp
+ *        ./co_demo.resume [test_*]
+ *        ./co_demo.resume [--help | test_<something> | test_<prefix> ]
+ *        ./co_demo.resume test_coroutines
+ *
+ * Ref:
+ *  [1] https://www.chiark.greenend.org.uk/~sgtatham/quasiblog/coroutines-c++20/
+ *      Downloaded from the above extensive write-up building up the
+ *      construction of programs with coroutines.
+ */
 #include <iostream>
+#include <experimental/coroutine>
 
 struct Event {
     // you could put a description of a specific event in here
@@ -8,18 +26,18 @@ struct Event {
 class UserFacing {
   public:
     class promise_type;
-    using handle_type = std::coroutine_handle<promise_type>;
+    using handle_type = std::experimental::coroutine_handle<promise_type>;
     class promise_type {
       public:
         UserFacing get_return_object() {
             auto handle = handle_type::from_promise(*this);
             return UserFacing{handle};
         }
-        std::suspend_never initial_suspend() { return {}; }
+        std::experimental::suspend_never initial_suspend() { return {}; }
         void return_void() {}
         void unhandled_exception() {}
-        std::suspend_always final_suspend() noexcept { return {}; }
-        std::suspend_always await_transform(Event) {
+        std::experimental::suspend_always final_suspend() noexcept { return {}; }
+        std::experimental::suspend_always await_transform(Event) {
             // you could write code here that adjusted the main
             // program's data structures to ensure the coroutine would
             // be resumed at the right time
