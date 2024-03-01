@@ -1,6 +1,6 @@
 /*
  * -----------------------------------------------------------------------------
- * Deciphering Coroutines: You Tube Talk
+ * Deciphering Coroutines: By Andreas Weis, CppCon2022 You Tube Talk
  *
  * Implement basic coroutines from simple examples.
  * Problem Statement: Implement Fibonacci series using coroutines.
@@ -21,6 +21,14 @@
  *   compiler to treat this function as a coroutine.
  *
  * - Can convert a promise to a coroutine_handle and vice-versa
+ *
+ * - 'Awaitable' is the type of the argument that I can call the `co_await`
+ *    operator with inside the coroutine.
+ *    - Usually, you do co_await to stall for a result, which may be sending
+ *      a result (of some computation) back to the caller, via the promise_type.
+ *    - co_await are the -only- code points where there is an opportunity
+ *      for execution to be suspended, and control handed back to the caller.
+ *    - Not every co_await call will _result_ in suspension, but it _can_.
  *
  * Ref:
  *  [1] https://www.youtube.com/watch?v=J7fYddslH0Q, Andreas Weis
@@ -54,6 +62,7 @@ void test_msg(string);
 void test_runFiboGenerator_basic(void);
 void test_coro_hello_world_basic(void);
 void test_resume_coro_hello_world(void);
+void test_coro_hello_world_await_42(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -69,6 +78,7 @@ TEST_FNS Test_fns[] = {
         , { "test_runFiboGenerator_basic"     , test_runFiboGenerator_basic }
         , { "test_coro_hello_world_basic"     , test_coro_hello_world_basic }
         , { "test_resume_coro_hello_world"    , test_resume_coro_hello_world }
+        , { "test_coro_hello_world_await_42"  , test_coro_hello_world_await_42 }
 };
 
 // Test start / end info-msg macros
@@ -84,6 +94,10 @@ TEST_FNS Test_fns[] = {
  *      **** Coroutines Definitions and Implementation begins here ****
  * *****************************************************************************
  */
+
+constexpr uint32 AnyCoroReturnType_Initial_Value{999999};
+
+constexpr uint32 AnyCoroReturnType_Answer{42};
 
 /*
  * -----------------------------------------------------------------------------
@@ -103,6 +117,9 @@ struct AnyCoroReturnType {
 
     // Minimal implementation to get compilation to work.
     struct promise_type {
+
+        // Member item to exchange data thru coroutine handle and await event
+        uint32  value_{AnyCoroReturnType_Initial_Value};
 
         // Create the coroutine_handle from the promise (as they are both
         // interchangeable), and pass that handle as a constructor arg to the
@@ -125,7 +142,9 @@ struct AnyCoroReturnType {
         std::experimental::suspend_always final_suspend() noexcept { return {}; }
     };
 
+    // ------------------
     // Member fields
+    // ------------------
     std::experimental::coroutine_handle<promise_type> corhdl;
 
     // Constructor: Takes coroutine_handle<promise_type> as an arg in its
@@ -133,12 +152,49 @@ struct AnyCoroReturnType {
     AnyCoroReturnType(std::experimental::coroutine_handle<promise_type> h)
         : corhdl(h) { }
 
+    // ------------------
+    // Methods
+    // ------------------
     // Resume uses this handle to resume coroutine.
     void resume() { corhdl.resume(); }
+
+    uint32 getAnswer() { return corhdl.promise().value_; }
 };
 
 /*
+ * -----------------------------------------------------------------------------
+ * Type defined which is a parameter to co_await() call in the coroutine.
+ * -----------------------------------------------------------------------------
+ */
+struct Awaitable {
+    // Member item that coroutine will await-on
+    uint32  value_;
+
+    // Constructor: Initialize value from input.
+    Awaitable(uint32 v) : value_{v} { };
+
+    bool    await_ready() { return false; }
+
+    // Customization point that will be executed shortly before
+    // the coroutine goes to sleep (get suspended). This function takes as
+    // its argument the coroutine_handle to the coroutine function that is
+    // about to be suspended.
+    void    await_suspend(std::experimental::coroutine_handle<AnyCoroReturnType::promise_type> corhdl) {
+
+        // Poke the value_ we are awaiting-ON back to the coroutine handle's promise
+        corhdl.promise().value_ = value_;
+
+        corhdl.resume();
+    }
+
+    // Function that gets executed right before coroutine wakes up again.
+    void    await_resume() { }
+};
+
+/*
+ * -----------------------------------------------------------------------------
  * Most basic, simplest coroutine which does basically nothing.
+ * -----------------------------------------------------------------------------
  */
 AnyCoroReturnType
 coro_hello_world(void)
@@ -147,6 +203,34 @@ coro_hello_world(void)
          << "Hello World! [ Printed when we do: "
             "suspend_never initial_suspend(), or coroutine is resume()'ed ]"
          << endl;
+
+    co_return;
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * Next version of a simple coroutine which invokes co_await interface to
+ * promise a value to the caller. The ReturnType is still defined as:
+ * `suspend_always initial_suspend` ...
+ * -----------------------------------------------------------------------------
+ */
+AnyCoroReturnType
+coro_hello_world_await_42(void)
+{
+    cout << __LOC__
+         << "Hello World! [ Printed when coroutine is resume()'ed"
+            ", as we are in suspend_always initial_suspend() ... ]"
+         << endl;
+
+    cout << __LOC__
+         <<  "Coroutine will be suspended immediately after setting"
+             " the answer to " << AnyCoroReturnType_Answer << endl;
+
+    co_await Awaitable{AnyCoroReturnType_Answer};
+
+    cout << __LOC__
+         <<  "Coroutine executing after co_await completes." << endl;
+
     co_return;
 }
 
@@ -252,8 +336,10 @@ test_runFiboGenerator_basic(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * With suspend_always initial_suspend() defined in promise_type{}, the
  * coroutine will always be suspended. It will not print the 'Hello world' msg.
+ * -----------------------------------------------------------------------------
  */
 void
 test_coro_hello_world_basic(void)
@@ -268,6 +354,7 @@ test_coro_hello_world_basic(void)
 }
 
 /*
+ * -----------------------------------------------------------------------------
  * With suspend_always initial_suspend() defined in promise_type{}, the
  * coroutine will be suspended. It will not print the 'Hello world' msg.
  *
@@ -277,6 +364,7 @@ test_coro_hello_world_basic(void)
  *
  * You should see the `Hello World` message from the coroutine inteleaved
  * between the messages emitted by this function.
+ * -----------------------------------------------------------------------------
  */
 void
 test_resume_coro_hello_world(void)
@@ -293,5 +381,54 @@ test_resume_coro_hello_world(void)
     cor.resume();
 
     cout << __LOC__ << "Returned from coro_hello_world() ..." << endl;
+    TEST_END();
+}
+
+/*
+ * -----------------------------------------------------------------------------
+ * This test case exercises a slightly different coroutine,
+ * coro_hello_world_await_42(), which deploys the `co_await` metaphor to
+ * exchange data via the coroutine handle to the caller. Coroutine scaffolding
+ * has been enhanced to support this data-exchange between the coroutine
+ * handle and the promise_type.
+ *
+ * The return type is still defined so that the coroutine will be suspended
+ * on entry. At this time, if we enquire for the return value, we will still
+ * get an uninitialized value (-1), indicating that the coroutine is still
+ * sleeping and has not performed the 'action' that will be triggered when
+ * it is suspended -during-execution- where it will save the value in the
+ * promise. [ See the work done in Awaitable.await_suspend() method. ]
+ * -----------------------------------------------------------------------------
+ */
+void
+test_coro_hello_world_await_42(void)
+{
+    TEST_START();
+
+    cout << endl;
+    cout << __LOC__ << "Executing coro_hello_world() [ Prints nothing"
+                       " with suspend_always initial_suspend() ] ..."
+         << endl;
+
+    uint got_value = 0;
+
+    AnyCoroReturnType cor = coro_hello_world_await_42();
+
+    got_value = cor.getAnswer();
+    cout << __LOC__ << "Returned value=" << got_value
+         << ". Coroutine is still suspended due to suspend_always of type."
+         << endl;
+
+    // Verify that this is still the initial value as coroutine is still
+    // suspended, and has not -YET- got to the `co_await` line of execution
+    assert(got_value == AnyCoroReturnType_Initial_Value);
+
+    cor.resume();
+
+    got_value = cor.getAnswer();
+
+    cout << __LOC__ << "Returned " << got_value
+                    << " from coro_hello_world_await_42() ..." << endl;
+    assert(got_value == AnyCoroReturnType_Answer);
     TEST_END();
 }
