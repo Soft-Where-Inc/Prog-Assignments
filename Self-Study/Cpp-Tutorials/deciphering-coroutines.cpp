@@ -20,7 +20,8 @@
  *   It's the presence of `co_await`, `co_yield` or `co_return` that tells the
  *   compiler to treat this function as a coroutine.
  *
- * -----------------------------------------------------------------------------
+ * - Can convert a promise to a coroutine_handle and vice-versa
+ *
  * Ref:
  *  [1] https://www.youtube.com/watch?v=J7fYddslH0Q, Andreas Weis
  *      CppCon 2022: Deciphering C++ Coroutines - A Diagrammatic Coroutine Cheat Sheet
@@ -52,6 +53,7 @@ void test_that(void);
 void test_msg(string);
 void test_runFiboGenerator_basic(void);
 void test_coro_hello_world_basic(void);
+void test_resume_coro_hello_world(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -66,6 +68,7 @@ TEST_FNS Test_fns[] = {
         , { "test_that"                       , test_that }
         , { "test_runFiboGenerator_basic"     , test_runFiboGenerator_basic }
         , { "test_coro_hello_world_basic"     , test_coro_hello_world_basic }
+        , { "test_resume_coro_hello_world"    , test_resume_coro_hello_world }
 };
 
 // Test start / end info-msg macros
@@ -83,21 +86,35 @@ TEST_FNS Test_fns[] = {
  */
 
 /*
+ * -----------------------------------------------------------------------------
  * AnyCoroReturnType{} - Definition of object returned by the coroutine.
  *
  * - promise_type{} is the object that remains "inside" the coroutine and is the
  *   interfacing object between the caller and the coroutine.
  *   - Is the "central intersection point" between caller & coroutine code.
  *   - This object is automatically generated -by-the-compiler. You do nothing.
+ *
+ * The code construction below (of coroutine_handle being passed as a
+ * constructor arg and stored as a member variable of ReturnType) is the most
+ * typical code form. (There are other ways to store this handle elsewhere,
+ * but the video did not discuss those.)
  */
 struct AnyCoroReturnType {
 
     // Minimal implementation to get compilation to work.
     struct promise_type {
-        AnyCoroReturnType   get_return_object() { return {}; }
 
-        // Specifies that the coroutine should never be initially suspended.
-        std::experimental::suspend_never initial_suspend() { return {}; }
+        // Create the coroutine_handle from the promise (as they are both
+        // interchangeable), and pass that handle as a constructor arg to the
+        // return type.
+        AnyCoroReturnType   get_return_object() {
+            return AnyCoroReturnType {
+                std::experimental::coroutine_handle<promise_type>::from_promise(*this)
+            };
+        }
+
+        // Specifies that the coroutine should always be initially suspended.
+        std::experimental::suspend_always initial_suspend() { return {}; }
 
         void return_void() { }
 
@@ -107,17 +124,28 @@ struct AnyCoroReturnType {
         // 'noexcept' as it's difficult to deal with exceptions when terminating.
         std::experimental::suspend_always final_suspend() noexcept { return {}; }
     };
+
+    // Member fields
+    std::experimental::coroutine_handle<promise_type> corhdl;
+
+    // Constructor: Takes coroutine_handle<promise_type> as an arg in its
+    // constructor and store it in member variable, `corhdl`.
+    AnyCoroReturnType(std::experimental::coroutine_handle<promise_type> h)
+        : corhdl(h) { }
+
+    // Resume uses this handle to resume coroutine.
+    void resume() { corhdl.resume(); }
 };
 
 /*
  * Most basic, simplest coroutine which does basically nothing.
  */
-
 AnyCoroReturnType
 coro_hello_world(void)
 {
     cout << __LOC__
-         << "Hello World! [ Printed when we do: suspend_never initial_suspend() ]"
+         << "Hello World! [ Printed when we do: "
+            "suspend_never initial_suspend(), or coroutine is resume()'ed ]"
          << endl;
     co_return;
 }
@@ -223,6 +251,10 @@ test_runFiboGenerator_basic(void)
     TEST_END();
 }
 
+/*
+ * With suspend_always initial_suspend() defined in promise_type{}, the
+ * coroutine will always be suspended. It will not print the 'Hello world' msg.
+ */
 void
 test_coro_hello_world_basic(void)
 {
@@ -231,6 +263,35 @@ test_coro_hello_world_basic(void)
     cout << endl;
     cout << __LOC__ << "Executing coro_hello_world() [ Prints nothing with suspend_always initial_suspend() ] ..." << endl;
     coro_hello_world();
+    cout << __LOC__ << "Returned from coro_hello_world() ..." << endl;
+    TEST_END();
+}
+
+/*
+ * With suspend_always initial_suspend() defined in promise_type{}, the
+ * coroutine will be suspended. It will not print the 'Hello world' msg.
+ *
+ * However, in this test case, we grab and store the coroutine handle,
+ * returned by `cor = coro_hello_world()`. And perform cor.resume() to
+ * resume the coroutine.
+ *
+ * You should see the `Hello World` message from the coroutine inteleaved
+ * between the messages emitted by this function.
+ */
+void
+test_resume_coro_hello_world(void)
+{
+    TEST_START();
+
+    cout << endl;
+    cout << __LOC__ << "Executing coro_hello_world() [ Prints nothing"
+                       " with suspend_always initial_suspend() ] ..."
+         << endl;
+
+    AnyCoroReturnType cor = coro_hello_world();
+
+    cor.resume();
+
     cout << __LOC__ << "Returned from coro_hello_world() ..." << endl;
     TEST_END();
 }
