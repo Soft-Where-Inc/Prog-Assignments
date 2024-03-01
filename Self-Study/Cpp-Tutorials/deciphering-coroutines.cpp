@@ -3,7 +3,9 @@
  * Deciphering Coroutines: You Tube Talk
  *
  * Implement basic coroutines from simple examples.
+ * Problem Statement: Implement Fibonacci series using coroutines.
  *
+ * -----------------------------------------------------------------------------
  * Ref:
  *  [1] https://www.youtube.com/watch?v=J7fYddslH0Q, Andreas Weis
  *      CppCon 2022: Deciphering C++ Coroutines - A Diagrammatic Coroutine Cheat Sheet
@@ -17,10 +19,12 @@
  *  Thu 29.Feb.2024: Went for Chris Ramming's going-away lunch in Los Altos.
  * -----------------------------------------------------------------------------
  */
-
 #include <iostream>
+#include <thread>
 
 using namespace std;
+
+typedef unsigned int uint32;
 
 string Usage = " [ --help | test_<fn-name> ]\n";
 
@@ -30,6 +34,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_runFiboGenerator_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -40,13 +45,40 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
-                      };
+          { "test_this"                       , test_this }
+        , { "test_that"                       , test_that }
+        , { "test_runFiboGenerator_basic"     , test_runFiboGenerator_basic }
+};
 
 // Test start / end info-msg macros
 #define TEST_START()  printf("%s ", __func__)
 #define TEST_END()    printf(" ...OK\n")
+
+/*
+ * *****************************************************************************
+ *      **** Fibonacci Sequence Definitions and Implementation begins here ****
+ * *****************************************************************************
+ */
+
+/*
+ * *****************************************************************************
+ * Initial implementation of Fibonacci Generator.
+ * Generate hard-coded 100 initial numbers in Fibonacci sequence.
+ * *****************************************************************************
+ */
+void runFiboGenerator(void)
+{
+    uint32 ictr = 0;
+    uint32 i1 = 1;
+    uint32 i2 = 1;
+    while (ictr++ < 100) {
+        cout << i1 << " " << std::flush;
+        i1 = std::exchange(i2, (i1 + i2));
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    cout << endl;
+}
+
 
 /*
  * *****************************************************************************
@@ -113,5 +145,13 @@ test_msg(string msg)
 {
     TEST_START();
     assert(msg == "Hello World.");
+}
+
+void
+test_runFiboGenerator_basic(void)
+{
+    TEST_START();
+    runFiboGenerator();
+    TEST_END();
 }
 
