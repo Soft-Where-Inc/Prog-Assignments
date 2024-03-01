@@ -96,8 +96,8 @@ struct AnyCoroReturnType {
     struct promise_type {
         AnyCoroReturnType   get_return_object() { return {}; }
 
-        // Specifies that the coroutine should be initially suspended.
-        std::experimental::suspend_always initial_suspend() { return {}; }
+        // Specifies that the coroutine should never be initially suspended.
+        std::experimental::suspend_never initial_suspend() { return {}; }
 
         void return_void() { }
 
@@ -117,7 +117,7 @@ AnyCoroReturnType
 coro_hello_world(void)
 {
     cout << __LOC__
-         << "Hello World!"
+         << "Hello World! [ Printed when we do: suspend_never initial_suspend() ]"
          << endl;
     co_return;
 }
