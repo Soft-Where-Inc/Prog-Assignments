@@ -65,6 +65,7 @@ void test_resume_coro_hello_world(void);
 void test_coro_hello_world_await_42(void);
 void test_coro_FiboGenerator(void);
 void test_coro_FiboGenerator2(void);
+void test_coro_FiboGenerator3(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -83,6 +84,7 @@ TEST_FNS Test_fns[] = {
         , { "test_coro_hello_world_await_42"  , test_coro_hello_world_await_42 }
         , { "test_coro_FiboGenerator"         , test_coro_FiboGenerator }
         , { "test_coro_FiboGenerator2"        , test_coro_FiboGenerator2 }
+        , { "test_coro_FiboGenerator3"        , test_coro_FiboGenerator3 }
 };
 
 // Test start / end info-msg macros
@@ -136,6 +138,19 @@ struct AnyCoroReturnType {
 
         // Specifies that the coroutine should always be initially suspended.
         std::experimental::suspend_always initial_suspend() { return {}; }
+
+        // Interface that gets invoked by use of co_yield in coroutine.
+        // Rather than go through (a) Invoke constructor for Awaitable, and
+        // (b) Poke the value into the promise_type{}'s value_, poke it here
+        // directly. And then invoke suspend.
+        std::experimental::suspend_always yield_value(uint32 value) {
+            value_ = value;
+
+            // Expected return from `co_await Awaitable` is expected to be
+            // an Awaitable. Return an empty suspend_always{}, so coroutine
+            // can be suspended.
+            return {};
+        }
 
         void return_void() { }
 
@@ -359,6 +374,43 @@ coro_FiboGenerator2(void)
 
 /*
  * *****************************************************************************
+ * Variation of coro_FiboGenerator2() to implement await-logic using co_yield.
+ * Matching changes are done in promise_type{} to define
+ * suspend_always yield_value() method to save off arg to co_yield in promise.
+ * *****************************************************************************
+ */
+AnyCoroReturnType
+coro_FiboGenerator3(void)
+{
+    uint32 ictr = 0;
+
+    uint32 i1 = 1;
+    uint32 i2 = 1;
+
+    while (true) {
+
+        // cout << __LOC__ << "Call co_await(): number=" << i1 << "... ";
+        printf("[%s():%d] Call co_await: number=%4u ...",
+               __func__, __LINE__, i1);
+
+        // Return current value of i1, and wait. (For initial value of i2, we will
+        // perform the await below, on the 1st iteration of the loop.)
+        // false => Do -not- resume this coroutine after every await call. Let
+        //          the caller invoke resume() to resume control-flow.
+        //
+        // NOTE: co_yield is short-form alias for co_await Awaitable{i1, false};
+        //       which is done in coro_FiboGenerator2().
+        co_yield i1;
+
+        // When coroutine is resumed Perform: i1 = i2; i2 = (i1 + i2);
+        i1 = std::exchange(i2, (i1 + i2));
+
+    }
+    co_return;
+}
+
+/*
+ * *****************************************************************************
  * main()
  * *****************************************************************************
  */
@@ -565,6 +617,34 @@ test_coro_FiboGenerator2(void)
 
     cout << endl;
     AnyCoroReturnType cor = coro_FiboGenerator2();
+
+    // Coroutine is suspended on entry, so do an initial resume, first.
+    cor.resume();
+
+    // Keep pulling next Fibonacci number from the generator, till we get tired.
+    uint32 ictr = 0;
+    while (ictr < 20) {
+
+        uint32 next_num = cor.getAnswer();
+
+        // This is not compiling in my version of g++. Resort to printf().
+        // cout << __LOC__ << std::format("Fibo[{} ]={}", ictr, next_num) << endl;
+        printf("[%s():%d] Fibo[%2d] = %4u ... resume ...\n",
+               __func__, __LINE__, ictr, next_num);
+
+        cor.resume();
+        ictr++;
+    }
+    TEST_END();
+}
+
+void
+test_coro_FiboGenerator3(void)
+{
+    TEST_START();
+
+    cout << endl;
+    AnyCoroReturnType cor = coro_FiboGenerator3();
 
     // Coroutine is suspended on entry, so do an initial resume, first.
     cor.resume();
