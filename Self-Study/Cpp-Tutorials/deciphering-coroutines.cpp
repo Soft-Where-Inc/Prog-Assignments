@@ -63,6 +63,8 @@ void test_runFiboGenerator_basic(void);
 void test_coro_hello_world_basic(void);
 void test_resume_coro_hello_world(void);
 void test_coro_hello_world_await_42(void);
+void test_coro_FiboGenerator(void);
+void test_coro_FiboGenerator2(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -79,6 +81,8 @@ TEST_FNS Test_fns[] = {
         , { "test_coro_hello_world_basic"     , test_coro_hello_world_basic }
         , { "test_resume_coro_hello_world"    , test_resume_coro_hello_world }
         , { "test_coro_hello_world_await_42"  , test_coro_hello_world_await_42 }
+        , { "test_coro_FiboGenerator"         , test_coro_FiboGenerator }
+        , { "test_coro_FiboGenerator2"        , test_coro_FiboGenerator2 }
 };
 
 // Test start / end info-msg macros
@@ -163,15 +167,33 @@ struct AnyCoroReturnType {
 
 /*
  * -----------------------------------------------------------------------------
- * Type defined which is a parameter to co_await() call in the coroutine.
+ * Type defined which is a parameter to the co_await() call in the coroutine.
  * -----------------------------------------------------------------------------
  */
 struct Awaitable {
     // Member item that coroutine will await-on
     uint32  value_;
 
-    // Constructor: Initialize value from input.
-    Awaitable(uint32 v) : value_{v} { };
+    // Should we resume after pushing value_ to promise_type?
+    bool    do_resume_;
+
+    // Constructor: Initialize value & resume flag from user-specific input.
+    Awaitable(uint32 v) : value_{v} {
+        // We expect that the more common case is that the client that wants
+        // to initialize the await() structure will push a new value to the
+        // promise, and would like to resume executing the coroutine.
+        do_resume_ = true;
+        cout << __LOC__ << "Constructor Awaitable{}: Use default do_resume_=" << do_resume_
+             << endl;
+    };
+
+    // Caller that wishes to control the resume semantics can use this interface.
+    Awaitable(uint32 v, bool resume) : value_{v} {
+        // cout << __LOC__ << "Constructor Awaitable{}: Set do_resume_=" << resume
+        //      << endl;
+
+        do_resume_ = resume;
+    };
 
     bool    await_ready() { return false; }
 
@@ -184,7 +206,9 @@ struct Awaitable {
         // Poke the value_ we are awaiting-ON back to the coroutine handle's promise
         corhdl.promise().value_ = value_;
 
-        corhdl.resume();
+        if (do_resume_) {
+            corhdl.resume();
+        }
     }
 
     // Function that gets executed right before coroutine wakes up again.
@@ -258,6 +282,79 @@ void runFiboGenerator(void)
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     cout << endl;
+}
+
+/*
+ * *****************************************************************************
+ * Fibonacci Generator implemented as a coroutine.
+ * Here we basically loop endlessly, sending one output value to the caller and
+ * then await. A resume() issued by the caller will step us to the next
+ * number, send it out, and then await.
+ * *****************************************************************************
+ */
+AnyCoroReturnType
+coro_FiboGenerator(void)
+{
+    uint32 ictr = 0;
+
+    uint32 i1 = 1;
+    uint32 i2 = 1;
+
+    // Return initial value of i1, and wait. (For initial value of i2, we will
+    // perform the await below, on the 1st iteration of the loop.)
+    // false => Do -not- resume this coroutine after every await call. Let
+    //          the caller invoke resume() to resume control-flow.
+    co_await Awaitable{i1, false};
+    while (true) {
+
+        // Perform: i1 = i2; i2 = (i1 + i2);
+        i1 = std::exchange(i2, (i1 + i2));
+
+        // cout << __LOC__
+        //      << "await(): ictr=" << ictr << ", i1=" << i1 << ", i2=" << i2
+        //      << endl;
+
+        // Return the next Fibonacci value, i1, and await.
+        co_await Awaitable{i1, false};
+    }
+    co_return;
+}
+
+/*
+ * *****************************************************************************
+ * Variation of Fibonacci Generator implemented as a coroutine.
+ * Change the suspend / resume logic slightly here, so that there is less of
+ * a mental-strain in tracking `await()` calls. There is only point where we
+ * return current (next) Fibonacci number, and then do an await. Then, upon
+ * resumption by the caller, we will compute the next number, go back into the
+ * loop and then again await().
+ * *****************************************************************************
+ */
+AnyCoroReturnType
+coro_FiboGenerator2(void)
+{
+    uint32 ictr = 0;
+
+    uint32 i1 = 1;
+    uint32 i2 = 1;
+
+    while (true) {
+
+        // cout << __LOC__ << "Call co_await(): number=" << i1 << "... ";
+        printf("[%s():%d] Call co_await: number=%4u ...",
+               __func__, __LINE__, i1);
+
+        // Return current value of i1, and wait. (For initial value of i2, we will
+        // perform the await below, on the 1st iteration of the loop.)
+        // false => Do -not- resume this coroutine after every await call. Let
+        //          the caller invoke resume() to resume control-flow.
+        co_await Awaitable{i1, false};
+
+        // When coroutine is resumed Perform: i1 = i2; i2 = (i1 + i2);
+        i1 = std::exchange(i2, (i1 + i2));
+
+    }
+    co_return;
 }
 
 /*
@@ -430,5 +527,61 @@ test_coro_hello_world_await_42(void)
     cout << __LOC__ << "Returned " << got_value
                     << " from coro_hello_world_await_42() ..." << endl;
     assert(got_value == AnyCoroReturnType_Answer);
+    TEST_END();
+}
+
+void
+test_coro_FiboGenerator(void)
+{
+    TEST_START();
+
+    cout << endl;
+    AnyCoroReturnType cor = coro_FiboGenerator();
+
+    // Coroutine is suspended on entry, so do an initial resume, first.
+    cor.resume();
+
+    // Keep pulling next Fibonacci number from the generator, till we get tired.
+    uint32 ictr = 0;
+    while (ictr < 20) {
+
+        uint32 next_num = cor.getAnswer();
+
+        // This is not compiling in my version of g++. Resort to printf().
+        // cout << __LOC__ << std::format("Fibo[{} ]={}", ictr, next_num) << endl;
+        printf("[%s():%d] Fibo[%2d] = %4u\n",
+               __func__, __LINE__, ictr, next_num);
+
+        cor.resume();
+        ictr++;
+    }
+    TEST_END();
+}
+
+void
+test_coro_FiboGenerator2(void)
+{
+    TEST_START();
+
+    cout << endl;
+    AnyCoroReturnType cor = coro_FiboGenerator2();
+
+    // Coroutine is suspended on entry, so do an initial resume, first.
+    cor.resume();
+
+    // Keep pulling next Fibonacci number from the generator, till we get tired.
+    uint32 ictr = 0;
+    while (ictr < 20) {
+
+        uint32 next_num = cor.getAnswer();
+
+        // This is not compiling in my version of g++. Resort to printf().
+        // cout << __LOC__ << std::format("Fibo[{} ]={}", ictr, next_num) << endl;
+        printf("[%s():%d] Fibo[%2d] = %4u ... resume ...\n",
+               __func__, __LINE__, ictr, next_num);
+
+        cor.resume();
+        ictr++;
+    }
     TEST_END();
 }
