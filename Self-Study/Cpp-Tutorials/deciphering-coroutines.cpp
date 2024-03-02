@@ -41,6 +41,9 @@
  *
  * History:
  *  Thu 29.Feb.2024: Went for Chris Ramming's going-away lunch in Los Altos.
+ *
+ * RESOLVE: Come up with scaffolding and example of Symmetric Transfer between
+ *          2 coroutines.
  * -----------------------------------------------------------------------------
  */
 #include <iostream>
