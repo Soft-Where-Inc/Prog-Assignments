@@ -10,10 +10,16 @@
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
  *
+ * Key-Points: ---- Iterators work through "Collections" ----
+ *
+ *  - Iterators through [begin(), end() ) - work on a half-open-range, where
+ *    end() is "past-the-last-item-in-the-vector".
+ *
  * History:
  * -----------------------------------------------------------------------------
  */
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -25,6 +31,9 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_iter_basic_empty_vec(void);
+void test_iter_basic_int_vec(void);
+void test_iter_basic_string(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -35,13 +44,16 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-      { "test_this"     , test_this }
-    , { "test_that"     , test_that }
+      { "test_this"                     , test_this }
+    , { "test_that"                     , test_that }
+    , { "test_iter_basic_empty_vec"     , test_iter_basic_empty_vec }
+    , { "test_iter_basic_int_vec"       , test_iter_basic_int_vec }
+    , { "test_iter_basic_string"       , test_iter_basic_string }
 };
 
 // Test start / end info-msg macros
-#define TEST_START()  printf("%s ", __func__)
-#define TEST_END()    printf(" ...OK\n")
+#define TEST_START()  cout << __func__ << ": "
+#define TEST_END()    cout << " ...OK" << endl
 
 /*
  * *****************************************************************************
@@ -110,3 +122,89 @@ test_msg(string msg)
     assert(msg == "Hello World.");
 }
 
+
+/*
+ * Basic usage of begin() / end() limits to print an empty vector.
+ */
+void
+test_iter_basic_empty_vec()
+{
+    TEST_START();
+
+    vector<int> v{};
+
+    cout << "size=" << v.size() << " [ ";
+
+    // Declare an iterator for current position of element in vector
+    for (vector<int>::iterator pos = v.begin(); pos < v.end(); pos++) {
+        cout << *pos << " ";
+    }
+    cout << "]";
+
+    // For an empty collection: Size is 0, and begin will be same as end.
+    assert(v.size() == 0);
+    assert(v.begin() == v.end());
+
+    TEST_END();
+}
+
+/*
+ * Basic usage of begin() / end() limits to iterate thru vector of ints.
+ */
+void
+test_iter_basic_int_vec()
+{
+    TEST_START();
+
+    vector<int> v{0, -93, 42, 22, 16, 2000};
+
+    cout << "size=" << v.size() << " [ ";
+
+    // Declare 'last' as an iterator thru elements in a vector-of-ints.
+    // Keep track of "last" seen element through iteration.
+    vector<int>::iterator last = v.begin();
+
+    // Use 'auto' to "infer" that we are declaring an iterator on vector<int>
+    for (auto pos = v.begin(); pos < v.end(); pos++) {
+        cout << *pos << " ";
+
+        last = pos;
+    }
+    cout << "]";
+
+    auto exp_size = 6;
+    assert(v.size() == exp_size);
+    assert((v.begin() + exp_size) == v.end());
+
+    // When we finish iterating, "last" should be positioned to last element
+    assert((v.begin() + exp_size - 1) == last);
+
+    // Can dereference an iterator's current position with *<iter> notation
+    assert(*last == 2000);
+
+    TEST_END();
+}
+
+/*
+ * Basic usage of begin() / end() limits to iterate thru a string, treating
+ * it like a vector of chars.
+ */
+void
+test_iter_basic_string()
+{
+    TEST_START();
+
+    string s{"Hello World."};
+
+    cout << "strlen=" << s.size() << " [ ";
+
+    for (auto curr = s.begin(); curr < s.end(); curr++) {
+        cout << *curr << " ";
+    }
+    cout << "]";
+
+    // Size of vector-of-chars; i.e. string's length == C-strlen()
+    assert(s.size() == strlen(s.c_str()));
+
+    TEST_END();
+}
