@@ -39,8 +39,8 @@ TEST_FNS Test_fns[] = {
                       };
 
 // Test start / end info-msg macros
-#define TEST_START()  printf("%s ", __func__)
-#define TEST_END()    printf(" ...OK\n")
+#define TEST_START()  cout << __func__ << " "
+#define TEST_END()    cout << " ...OK" << endl
 
 /*
  * *****************************************************************************
@@ -74,7 +74,8 @@ main(const int argc, const char *argv[])
             }
         }
         if (tctr == ARRAYSIZE(Test_fns) && !ntests) {
-            printf("Warning: Named test-function '%s' not found.\n", argv[1]);
+            cout << "Warning: Named test-function '"
+                 << argv[1] << "' not found." << endl;
             rv = 1;
         }
     } else {
