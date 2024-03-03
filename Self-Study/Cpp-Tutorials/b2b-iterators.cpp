@@ -23,6 +23,7 @@
  */
 #include <iostream>
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -40,6 +41,7 @@ void test_iter_basic_string(void);
 void test_prContainer_int_vector(void);
 void test_prContainer_string(void);
 void test_prContainer_strings(void);
+void test_prContainer_set_of_strings(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -58,6 +60,8 @@ TEST_FNS Test_fns[] = {
     , { "test_prContainer_int_vector"   , test_prContainer_int_vector }
     , { "test_prContainer_string"       , test_prContainer_string }
     , { "test_prContainer_strings"      , test_prContainer_strings }
+    , { "test_prContainer_set_of_strings"
+                                        , test_prContainer_set_of_strings }
 };
 
 // Test start / end info-msg macros
@@ -112,6 +116,9 @@ main(const int argc, const char *argv[])
  * Generic method to print items in an iterable container.
  * Return size of container; i.e., # of elements in it, so it can be used
  * for assertion checking in tests.
+ *
+ * NOTE: Cannot use begin() < end() as it won't work for SETs. Need to
+ *       just check that begin() != end().
  */
 template<typename T>
 size_t prContainer(const T& elements)
@@ -119,7 +126,7 @@ size_t prContainer(const T& elements)
     char sep{};
 
     // Enclose chars and strings in '' for readability.
-    if (elements.begin() < elements.end()) {
+    if (elements.begin() != elements.end()) {
         char ch;
         string s;
         if (   (typeid(*elements.begin()) == typeid(ch))
@@ -128,7 +135,7 @@ size_t prContainer(const T& elements)
         }
     }
     cout << "size=" << elements.size() << " [ ";
-    for (auto pos = elements.begin(); pos < elements.end(); pos++) {
+    for (auto pos = elements.begin(); pos != elements.end(); pos++) {
         cout << sep << *pos << sep << " ";
     }
     cout << "]\n";
@@ -301,6 +308,29 @@ test_prContainer_strings(void)
     nitems = prContainer(strings);
     assert(nitems == loadn);
 
+    TEST_END();
+}
+
+/*
+ * Construct a SET() of strings, and print the container, using generic
+ * container printing method.
+ */
+void
+test_prContainer_set_of_strings(void)
+{
+    TEST_START();
+
+    set<string> strings{ "this", "that", "and", "the", "other", "items"};
+
+    auto nitems = prContainer(strings);
+    assert(nitems == 6);
+
+    // Add some more elements to this set.
+    strings.insert("Here is a new one.");
+    strings.insert("Awkward string");
+    strings.insert("Just installed Eclipse, vim plugin is not working.");
+    nitems = prContainer(strings);
+    assert(nitems == 9);
     TEST_END();
 }
 
