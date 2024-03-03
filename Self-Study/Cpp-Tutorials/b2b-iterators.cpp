@@ -24,6 +24,7 @@
 #include <iostream>
 #include <vector>
 #include <set>
+#include <list>
 
 using namespace std;
 
@@ -42,6 +43,7 @@ void test_prContainer_int_vector(void);
 void test_prContainer_string(void);
 void test_prContainer_strings(void);
 void test_prContainer_set_of_strings(void);
+void test_printContainer_list_of_names(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -62,6 +64,8 @@ TEST_FNS Test_fns[] = {
     , { "test_prContainer_strings"      , test_prContainer_strings }
     , { "test_prContainer_set_of_strings"
                                         , test_prContainer_set_of_strings }
+    , { "test_printContainer_list_of_names"
+                                        , test_printContainer_list_of_names }
 };
 
 // Test start / end info-msg macros
@@ -113,12 +117,15 @@ main(const int argc, const char *argv[])
 // **** Helper methods ****
 
 /*
- * Generic method to print items in an iterable container.
+ * **************************************************************************
+ * prContainer() - Generic method to print items in an iterable container.
+ *
  * Return size of container; i.e., # of elements in it, so it can be used
  * for assertion checking in tests.
  *
  * NOTE: Cannot use begin() < end() as it won't work for SETs. Need to
  *       just check that begin() != end().
+ * **************************************************************************
  */
 template<typename T>
 size_t prContainer(const T& elements)
@@ -142,6 +149,43 @@ size_t prContainer(const T& elements)
     return elements.size();
 }
 
+/*
+ * **************************************************************************
+ * printContainer() - Print using range-based for()-loop
+ *
+ * Generic method to print items in an iterable container. Exactly similar to
+ * prContainer() but we use a range-based for()-loop here. Under the covers,
+ * this does the same thing as checking for begin(), pos != end()
+ *
+ * Return size of container; i.e., # of elements in it, so it can be used
+ * for assertion checking in tests.
+ *
+ * NOTE: The iteration returns a 'const element' itself, not a reference to
+ *       the element (like prContainer() does).
+ *       So -NO-NEED- to dereference the `pos`. Just print `elem` directly!
+ * **************************************************************************
+ */
+template<typename T>
+size_t printContainer(const T& elements)
+{
+    char sep{};
+
+    // Enclose chars and strings in '' for readability.
+    if (elements.begin() != elements.end()) {
+        char ch;
+        string s;
+        if (   (typeid(*elements.begin()) == typeid(ch))
+            || (typeid(*elements.begin()) == typeid(s))) {
+            sep = '\'';
+        }
+    }
+    cout << "size=" << elements.size() << " [ ";
+    for (const auto& elem : elements) {
+        cout << sep << elem << sep << " ";
+    }
+    cout << "]\n";
+    return elements.size();
+}
 // **** Test cases ****
 
 void
@@ -331,6 +375,43 @@ test_prContainer_set_of_strings(void)
     strings.insert("Just installed Eclipse, vim plugin is not working.");
     nitems = prContainer(strings);
     assert(nitems == 9);
+    TEST_END();
+}
+
+/*
+ * Construct a LIST() of strings, and print the container, using generic
+ * container printing method. Items in a list are unordered. They appear in
+ * the way they get inserted, unlike a SET{}, where they are rearranged.
+ *
+ * This test case also exercises some basic list() methods, for learning.
+ */
+void
+test_printContainer_list_of_names(void)
+{
+    TEST_START();
+
+    list<string> names{ "Joe Biden", "Eric Hoffmann", "Michael Schwartz"};
+    auto exp_items = 3;
+    auto nitems = printContainer(names);
+    assert(nitems == exp_items);
+
+    assert(names.front() == "Joe Biden");
+    assert(names.back() == "Michael Schwartz");
+
+    names.emplace_back("Papa Johns");
+    exp_items++;
+    nitems = printContainer(names);
+    assert(nitems == exp_items);
+
+    assert(names.back() == "Papa Johns");
+
+    names.emplace_front("Papa Murphys");
+    exp_items++;
+    nitems = printContainer(names);
+    assert(nitems == exp_items);
+
+    assert(names.front() == "Papa Murphys");
+
     TEST_END();
 }
 
