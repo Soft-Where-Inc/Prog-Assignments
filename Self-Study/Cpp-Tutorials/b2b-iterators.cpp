@@ -6,6 +6,9 @@
  * Ref:
  *  [1] https://www.youtube.com/watch?v=26aW6aBVpk0&t=394s
  *
+ *  [2] Good discussion of support for std::format() and alternatives.
+ *      https://stackoverflow.com/questions/63724059/does-gcc-support-c20-stdformat
+ *
  * Usage: g++ -o b2b-iterators b2b-iterators.cpp
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
@@ -34,6 +37,9 @@ void test_msg(string);
 void test_iter_basic_empty_vec(void);
 void test_iter_basic_int_vec(void);
 void test_iter_basic_string(void);
+void test_prContainer_int_vector(void);
+void test_prContainer_string(void);
+void test_prContainer_strings(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -48,7 +54,10 @@ TEST_FNS Test_fns[] = {
     , { "test_that"                     , test_that }
     , { "test_iter_basic_empty_vec"     , test_iter_basic_empty_vec }
     , { "test_iter_basic_int_vec"       , test_iter_basic_int_vec }
-    , { "test_iter_basic_string"       , test_iter_basic_string }
+    , { "test_iter_basic_string"        , test_iter_basic_string }
+    , { "test_prContainer_int_vector"   , test_prContainer_int_vector }
+    , { "test_prContainer_string"       , test_prContainer_string }
+    , { "test_prContainer_strings"      , test_prContainer_strings }
 };
 
 // Test start / end info-msg macros
@@ -94,6 +103,36 @@ main(const int argc, const char *argv[])
         cout << "Unknown argument: " << argv[1] << endl;
     }
     return rv;
+}
+
+
+// **** Helper methods ****
+
+/*
+ * Generic method to print items in an iterable container.
+ * Return size of container; i.e., # of elements in it, so it can be used
+ * for assertion checking in tests.
+ */
+template<typename T>
+size_t prContainer(const T& elements)
+{
+    char sep{};
+
+    // Enclose chars and strings in '' for readability.
+    if (elements.begin() < elements.end()) {
+        char ch;
+        string s;
+        if (   (typeid(*elements.begin()) == typeid(ch))
+            || (typeid(*elements.begin()) == typeid(s))) {
+            sep = '\'';
+        }
+    }
+    cout << "size=" << elements.size() << " [ ";
+    for (auto pos = elements.begin(); pos < elements.end(); pos++) {
+        cout << sep << *pos << sep << " ";
+    }
+    cout << "]\n";
+    return elements.size();
 }
 
 // **** Test cases ****
@@ -205,6 +244,70 @@ test_iter_basic_string()
 
     // Size of vector-of-chars; i.e. string's length == C-strlen()
     assert(s.size() == strlen(s.c_str()));
+
+    TEST_END();
+}
+
+void
+test_prContainer_int_vector(void)
+{
+    TEST_START();
+
+    vector<int> v{};
+    auto nitems = prContainer(v);
+    assert(nitems == 0);
+
+    v.push_back(1);
+    v.push_back(-1);
+    v.push_back(42);
+    v.push_back(-42);
+    v.push_back(0);
+    nitems = prContainer(v);
+    assert(nitems == 5);
+
+    TEST_END();
+}
+
+void
+test_prContainer_string(void)
+{
+    TEST_START();
+
+    string s{};
+    auto nitems = prContainer(s);
+    assert(nitems == 0);
+
+    s = "Hello World.";
+    nitems = prContainer(s);
+    assert(nitems == 12);
+
+    TEST_END();
+}
+
+void
+test_prContainer_strings(void)
+{
+    TEST_START();
+
+    vector<string> strings{};
+    auto nitems = prContainer(strings);
+    assert(nitems == 0);
+
+    // Load 5 strings to this vector
+    auto loadn = 5;
+    for (auto i = 0; i < loadn; i++) {
+        strings.push_back("String-" + std::to_string(i));
+    }
+    nitems = prContainer(strings);
+    assert(nitems == loadn);
+
+    TEST_END();
+}
+
+void
+test_template(void)
+{
+    TEST_START();
 
     TEST_END();
 }
