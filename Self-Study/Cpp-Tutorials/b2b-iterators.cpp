@@ -9,6 +9,8 @@
  *  [2] Good discussion of support for std::format() and alternatives.
  *      https://stackoverflow.com/questions/63724059/does-gcc-support-c20-stdformat
  *
+ *  [3] A Tour of C++, Bjarne Stroustrup, 2nd Ed.
+ *
  * Usage: g++ -std=c++20 -o b2b-iterators b2b-iterators.cpp
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
@@ -25,6 +27,8 @@
 #include <vector>
 #include <set>
 #include <list>
+#include <array>
+#include <deque>
 
 using namespace std;
 
@@ -44,6 +48,7 @@ void test_prContainer_string(void);
 void test_prContainer_strings(void);
 void test_prContainer_set_of_strings(void);
 void test_printContainer_list_of_names(void);
+void test_prRandomAccessContainer(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -66,11 +71,16 @@ TEST_FNS Test_fns[] = {
                                         , test_prContainer_set_of_strings }
     , { "test_printContainer_list_of_names"
                                         , test_printContainer_list_of_names }
+    , { "test_prRandomAccessContainer"  , test_prRandomAccessContainer }
 };
 
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << ": "
 #define TEST_END()    cout << " ...OK" << endl
+
+// Fabricate a string to track code-location of call-site.
+#define __LOC__ \
+    "[" + std::string{__func__} + "():" + std::to_string(__LINE__) + "] "
 
 /*
  * *****************************************************************************
@@ -143,6 +153,42 @@ size_t prContainer(const T& elements)
     }
     cout << "size=" << elements.size() << " [ ";
     for (auto pos = elements.begin(); pos != elements.end(); pos++) {
+        cout << sep << *pos << sep << " ";
+    }
+    cout << "]\n";
+    return elements.size();
+}
+
+/*
+ * **************************************************************************
+ * prRandomAccessContainer() - Generic method to print items in an iterable
+ *  container, that can be randomly accessed.
+ *
+ * Vector, Deque (double-ended queue), arrays qualify as such containers.
+ *
+ * Return size of container; i.e., # of elements in it, so it can be used
+ * for assertion checking in tests.
+ *
+ * NOTE: We go back to using (begin() < end()) which -ONLY- works for those
+ *       containers whose elements are laid out sequentially
+ * **************************************************************************
+ */
+template<typename T>
+size_t prRandomAccessContainer(const T& elements)
+{
+    char sep{};
+
+    // Enclose chars and strings in '' for readability.
+    if (elements.begin() < elements.end()) {    // NOTE: Use of < check.
+        char ch;
+        string s;
+        if (   (typeid(*elements.begin()) == typeid(ch))
+            || (typeid(*elements.begin()) == typeid(s))) {
+            sep = '\'';
+        }
+    }
+    cout << "size=" << elements.size() << " [ ";
+    for (auto pos = elements.begin(); pos < elements.end(); pos++) {
         cout << sep << *pos << sep << " ";
     }
     cout << "]\n";
@@ -418,6 +464,79 @@ test_printContainer_list_of_names(void)
     assert(nitems == exp_items);
 
     assert(names.front() == "Papa Murphys");
+
+    TEST_END();
+}
+
+/*
+ * Test print method for containers whose elements are laid out sequentially.
+ *  Vector, Array, Deque ..., Strings ...
+ */
+void
+test_prRandomAccessContainer(void)
+{
+    TEST_START();
+
+    constexpr auto array_size = 4;
+
+    // --- Test out arrays ----
+    cout << endl << "Test arrays:" << endl;
+
+    // Have to specify size of array when declaring it.
+    array<float, array_size> floats{1.234, 3.14, -42.42, 88.88};
+    auto nitems = prRandomAccessContainer(floats);
+    assert(nitems == array_size);
+
+    // RESOLVE: Why does this fail?
+    // assert(floats[1] == 3.14);
+
+    // Based on [3], pg. 141, Sec. 11.2.2 Use of Vec[] with bounds checking
+    try {
+        assert(floats.at(nitems) == 99);
+    } catch (out_of_range&) {
+        cerr << __LOC__
+             << "Out-of-range exception raised at index=" << nitems
+             << ", array size=" << floats.size()
+             << endl;
+    }
+
+    // --- Test out Deque's ----
+    cout << endl << "Test deques (Double-ended queues):" << endl;
+
+    auto exp_items = 0;
+    deque<int> dq_ints;
+    Dequeu
+    assert(dq_ints.size() == exp_items);
+
+    auto index{-1};
+    try {
+		assert(dq_ints.at(index) == 99);
+    } catch (out_of_range&) {
+    	cerr << __LOC__
+             << "Out-of-range exception raised at index=" << index
+             << ", double-ended queue size=" << dq_ints.size()
+             << endl;
+    }
+
+    dq_ints.push_front(42);
+    exp_items++;
+    nitems = prRandomAccessContainer(dq_ints);
+    assert(nitems == exp_items);
+
+    dq_ints.push_front(41);
+    exp_items++;
+    nitems = prRandomAccessContainer(dq_ints);
+    assert(nitems == exp_items);
+
+    dq_ints.push_back(51);
+    exp_items++;
+    nitems = prRandomAccessContainer(dq_ints);
+    assert(nitems == exp_items);
+
+    // Exercise interfaces to verify the data we loaded
+    assert(nitems == dq_ints.size());
+    assert(dq_ints.front() == 41);
+    assert(dq_ints.back() == 51);
 
     TEST_END();
 }
