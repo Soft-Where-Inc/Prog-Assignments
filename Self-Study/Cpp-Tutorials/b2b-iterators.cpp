@@ -9,7 +9,7 @@
  *  [2] Good discussion of support for std::format() and alternatives.
  *      https://stackoverflow.com/questions/63724059/does-gcc-support-c20-stdformat
  *
- * Usage: g++ -o b2b-iterators b2b-iterators.cpp
+ * Usage: g++ -std=c++20 -o b2b-iterators b2b-iterators.cpp
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
  *
@@ -165,8 +165,14 @@ size_t prContainer(const T& elements)
  *       So -NO-NEED- to dereference the `pos`. Just print `elem` directly!
  * **************************************************************************
  */
+/*
+ * NOTE: With C++17 and prior, you would define this function using templates.
+ *
 template<typename T>
 size_t printContainer(const T& elements)
+*/
+// NOTE: C++20 supports syntactic sugar to define without templates.
+size_t printContainer(const auto& elements)
 {
     char sep{};
 
@@ -186,6 +192,7 @@ size_t printContainer(const T& elements)
     cout << "]\n";
     return elements.size();
 }
+
 // **** Test cases ****
 
 void
