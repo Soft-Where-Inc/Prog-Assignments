@@ -59,6 +59,7 @@
 #include <deque>
 #include <map>
 #include <unordered_map>
+#include <algorithm>
 
 using namespace std;
 
@@ -81,6 +82,7 @@ void test_printContainer_list_of_names(void);
 void test_prRandomAccessContainer(void);
 void test_prBiDirIterateBackwards(void);
 void test_prContainerIterateForwards(void);
+void test_sort(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -107,6 +109,7 @@ TEST_FNS Test_fns[] = {
     , { "test_prBiDirIterateBackwards"  , test_prBiDirIterateBackwards }
     , { "test_prContainerIterateForwards"
                                         , test_prContainerIterateForwards }
+    , { "test_sort"                     , test_sort }
 };
 
 // Test start / end info-msg macros
@@ -777,6 +780,31 @@ test_prContainerIterateForwards(void)
     cout << "Unordered-map{}: ";
     auto nitems = prContainerIterateForwards(ukv_map);
     assert(nitems == exp_items);
+
+    TEST_END();
+}
+
+/*
+ * 	**** Test cases for different C++ STL Algorithms ****
+ */
+
+// Basic sort() algorithm.
+void
+test_sort(void)
+{
+    TEST_START();
+
+    vector<int> v{0, -93, 42, 22, 16, 2000};
+    std::sort(v.begin(), v.end());
+
+    cout << endl << "Sorted vector<int>:";
+    prContainer(v);
+
+    vector<string> strings{ "this", "that", "and", "the", "other", "items"};
+    std::sort(strings.begin(), strings.end());
+
+    cout << endl << "Sorted vector<string>:";
+    prContainer(strings);
 
     TEST_END();
 }
