@@ -2,6 +2,7 @@
  * -----------------------------------------------------------------------------
  * b2b-iterators.cpp: Back to Basics C++ Iterators
  * Talk by Nicolai Josuttis - CppCon 2023
+ * -----------------------------------------------------------------------------
  *
  * Ref:
  *  [1] https://www.youtube.com/watch?v=26aW6aBVpk0&t=394s
@@ -10,6 +11,13 @@
  *      https://stackoverflow.com/questions/63724059/does-gcc-support-c20-stdformat
  *
  *  [3] A Tour of C++, Bjarne Stroustrup, 2nd Ed.
+ *
+ *  [4] https://devblogs.microsoft.com/cppblog/documentation-for-cpp20-ranges/
+ *
+ *  [5] https://learn.microsoft.com/en-gb/cpp/standard-library/ranges?view=msvc-170
+ *
+ *  [6] https://learn.microsoft.com/en-us/cpp/standard-library/range-adaptors?view=msvc-170
+ *  	RESOLVE: Also see examples on range-adaptors from above article.
  *
  * Usage: g++ -std=c++20 -o b2b-iterators b2b-iterators.cpp
  *        ./b2b-iterators [test_*]
@@ -48,6 +56,13 @@
  *      - forward_list<>, unordered containers (hash tables, unordered_map<K,V>,
  *        unordered_multimap<K,V>, unordered_set<T>, unordered_multiset<T>
  *
+ * -- Key Points on Ranges from [4]
+ *
+ * A range is represented by an iterator that marks the beginning of the
+ * range, and a sentinel that marks the end of the range. The sentinel may
+ * be the same type as the begin iterator, or it may be different, which lets
+ * Ranges support operations which simple iterator pairs can’t.
+ *
  * History:
  * -----------------------------------------------------------------------------
  */
@@ -60,6 +75,7 @@
 #include <map>
 #include <unordered_map>
 #include <algorithm>
+#include <experimental/ranges>
 
 using namespace std;
 
@@ -83,6 +99,7 @@ void test_prRandomAccessContainer(void);
 void test_prBiDirIterateBackwards(void);
 void test_prContainerIterateForwards(void);
 void test_sort(void);
+void test_sort_range_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -110,6 +127,7 @@ TEST_FNS Test_fns[] = {
     , { "test_prContainerIterateForwards"
                                         , test_prContainerIterateForwards }
     , { "test_sort"                     , test_sort }
+    , { "test_sort_range_basic"         , test_sort_range_basic }
 };
 
 // Test start / end info-msg macros
@@ -805,6 +823,23 @@ test_sort(void)
 
     cout << endl << "Sorted vector<string>:";
     prContainer(strings);
+
+    TEST_END();
+}
+
+/*
+ * Basic example of using std::range() to specify begin() / end() of vector to sort().
+ */
+void
+test_sort_range_basic(void)
+{
+    TEST_START();
+
+    vector<int> v{0, -93, 42, 22, 16, 2000};
+    std::ranges::sort(v);
+
+    cout << endl << "Sorted vector<int>:";
+    prContainer(v);
 
     TEST_END();
 }
