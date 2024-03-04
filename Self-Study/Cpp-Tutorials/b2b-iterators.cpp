@@ -29,6 +29,8 @@
 #include <list>
 #include <array>
 #include <deque>
+#include <map>
+#include <unordered_map>
 
 using namespace std;
 
@@ -49,6 +51,8 @@ void test_prContainer_strings(void);
 void test_prContainer_set_of_strings(void);
 void test_printContainer_list_of_names(void);
 void test_prRandomAccessContainer(void);
+void test_prBiDirIterateBackwards(void);
+void test_prContainerIterateForwards(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -72,6 +76,9 @@ TEST_FNS Test_fns[] = {
     , { "test_printContainer_list_of_names"
                                         , test_printContainer_list_of_names }
     , { "test_prRandomAccessContainer"  , test_prRandomAccessContainer }
+    , { "test_prBiDirIterateBackwards"  , test_prBiDirIterateBackwards }
+    , { "test_prContainerIterateForwards"
+                                        , test_prContainerIterateForwards }
 };
 
 // Test start / end info-msg macros
@@ -127,6 +134,40 @@ main(const int argc, const char *argv[])
 // **** Helper methods ****
 
 /*
+ * -----------------------------------------------------------------------------
+ * Function to overload << operator to generically print all elements in a
+ * pair. Uses template of generic typenames 'T1' and 'T2'.
+ *
+ * Note: The arg name 'vector' is allowed even though 'vector' is a keyword.
+ *
+ * Ref:  https://www.geeksforgeeks.org/different-ways-to-print-elements-of-vector/
+ * -----------------------------------------------------------------------------
+ */
+template <typename T1, typename T2>
+ostream& operator<<(ostream& os, const pair<T1,T2>& apair)
+{
+    char f_sqc{}; // First's  single-quote character
+    char s_sqc{}; // Second's single-quote character
+
+    char ch;
+    string s;
+    if (   (typeid(apair.first) == typeid(ch))
+        || (typeid(apair.first) == typeid(s))) {
+        f_sqc = '\'';
+    }
+    if (   (typeid(apair.second) == typeid(ch))
+        || (typeid(apair.second) == typeid(s))) {
+        s_sqc = '\'';
+    }
+
+    // Printing the pair of items using <<
+    os << "(" << f_sqc << apair.first  << f_sqc
+       << "," << s_sqc << apair.second << s_sqc
+       << ")";
+    return os;
+}
+
+/*
  * **************************************************************************
  * prContainer() - Generic method to print items in an iterable container.
  *
@@ -140,7 +181,7 @@ main(const int argc, const char *argv[])
 template<typename T>
 size_t prContainer(const T& elements)
 {
-    char sep{};
+    char sqc{}; // single-quote character
 
     // Enclose chars and strings in '' for readability.
     if (elements.begin() != elements.end()) {
@@ -148,15 +189,27 @@ size_t prContainer(const T& elements)
         string s;
         if (   (typeid(*elements.begin()) == typeid(ch))
             || (typeid(*elements.begin()) == typeid(s))) {
-            sep = '\'';
+            sqc = '\'';
         }
     }
     cout << "size=" << elements.size() << " [ ";
     for (auto pos = elements.begin(); pos != elements.end(); pos++) {
-        cout << sep << *pos << sep << " ";
+        cout << sqc << *pos << sqc << " ";
     }
     cout << "]\n";
     return elements.size();
+}
+
+/*
+ * **************************************************************************
+ * prContainerIterateForwards() - Generic method to print items in an iterable
+ * container that only supports iterating forward. E.g. singly-linked lists,
+ * hash tables.
+ */
+template<typename T>
+size_t prContainerIterateForwards(const T& elements)
+{
+    return prContainer(elements);
 }
 
 /*
@@ -176,7 +229,7 @@ size_t prContainer(const T& elements)
 template<typename T>
 size_t prRandomAccessContainer(const T& elements)
 {
-    char sep{};
+    char sqc{}; // single-quote character
 
     // Enclose chars and strings in '' for readability.
     if (elements.begin() < elements.end()) {    // NOTE: Use of < check.
@@ -184,12 +237,12 @@ size_t prRandomAccessContainer(const T& elements)
         string s;
         if (   (typeid(*elements.begin()) == typeid(ch))
             || (typeid(*elements.begin()) == typeid(s))) {
-            sep = '\'';
+            sqc = '\'';
         }
     }
     cout << "size=" << elements.size() << " [ ";
     for (auto pos = elements.begin(); pos < elements.end(); pos++) {
-        cout << sep << *pos << sep << " ";
+        cout << sqc << *pos << sqc << " ";
     }
     cout << "]\n";
     return elements.size();
@@ -220,7 +273,7 @@ size_t printContainer(const T& elements)
 // NOTE: C++20 supports syntactic sugar to define without templates.
 size_t printContainer(const auto& elements)
 {
-    char sep{};
+    char sqc{}; // single-quote character
 
     // Enclose chars and strings in '' for readability.
     if (elements.begin() != elements.end()) {
@@ -228,13 +281,51 @@ size_t printContainer(const auto& elements)
         string s;
         if (   (typeid(*elements.begin()) == typeid(ch))
             || (typeid(*elements.begin()) == typeid(s))) {
-            sep = '\'';
+            sqc = '\'';
         }
     }
     cout << "size=" << elements.size() << " [ ";
     for (const auto& elem : elements) {
-        cout << sep << elem << sep << " ";
+        cout << sqc << elem << sqc << " ";
     }
+    cout << "]\n";
+    return elements.size();
+}
+
+/*
+ * **************************************************************************
+ * prBiDirIterateBackwards() - Generic method to print items in a container
+ * that supports bi-directional access. Print elements in backwards order.
+ *
+ * Return size of container; i.e., # of elements in it, so it can be used
+ * for assertion checking in tests.
+ *
+ * NOTE: Cannot use begin() < end() as it won't work for LISTs. Need to
+ *       just check that begin() != end().
+ * **************************************************************************
+ */
+template<typename T>
+size_t prBiDirIterateBackwards(const T& elements)
+{
+    char sqc{}; // single-quote character
+
+    // Enclose chars and strings in '' for readability.
+    if (elements.begin() != elements.end()) {
+        char ch;
+        string s;
+        if (   (typeid(*elements.begin()) == typeid(ch))
+            || (typeid(*elements.begin()) == typeid(s))) {
+            sqc = '\'';
+        }
+    }
+    cout << "size=" << elements.size() << " [ ";
+
+    // Iterate starting from the end, but 'end' is not a valid item.
+    auto pos = elements.end();
+    do {
+        --pos;
+        cout << sqc << *pos << sqc << " ";
+    } while (pos != elements.begin());
     cout << "]\n";
     return elements.size();
 }
@@ -505,7 +596,6 @@ test_prRandomAccessContainer(void)
 
     auto exp_items = 0;
     deque<int> dq_ints;
-    Dequeu
     assert(dq_ints.size() == exp_items);
 
     auto index{-1};
@@ -537,6 +627,129 @@ test_prRandomAccessContainer(void)
     assert(nitems == dq_ints.size());
     assert(dq_ints.front() == 41);
     assert(dq_ints.back() == 51);
+
+    TEST_END();
+}
+
+/*
+ * Test print methods on bi-directional iterators. Print elements in backwards
+ * scan order, to show that the -- iteration is working.
+ *
+ * list<>, Associative containers, like map<>, set<> ... qualify)
+ */
+void
+test_prBiDirIterateBackwards(void)
+{
+    TEST_START();
+
+    cout << endl;
+
+    auto exp_items = 6;
+    set<string> strings{ "this", "that", "and", "the", "other", "items"};
+
+    // Note that the lists should be printed in exactly reverse order.
+    prContainer(strings);
+
+    auto nitems = prBiDirIterateBackwards(strings);
+    assert(nitems == exp_items);
+
+    // ---- Test with map: Key-value pair
+
+    map<string, int> kv_map{  {"one"	, 1}
+                            , {"two"	, 2}
+                            , {"three"	, 3}
+                            , {"four"	, 4}
+                            , {"five"	, 5}
+                            , {"six"	, 6}
+                            , {"seven"	, 7}
+                            , {"eight"	, 8}
+                            , {"nine"	, 9}
+                            , {"ten"	, 10}
+                            };
+
+    cout << "Map{}: ";
+    exp_items = 10;
+    nitems = prBiDirIterateBackwards(kv_map);
+    assert(nitems == exp_items);
+
+    // ---- Test with a multi-map: Key-value pair, with duplicate keys
+
+    multimap<string, int> multi_kv_map{  {"one"     , 1}
+                                       , {"two"     , 2}
+                                       , {"three"   , 3}
+                                       , {"four"    , 4}
+                                       , {"five"    , 5}
+                                       , {"two"     , 22}
+                                       , {"six"     , 6}
+                                       , {"seven"   , 7}
+                                       , {"eight"   , 8}
+                                       , {"nine"    , 9}
+                                       , {"seven"   , 77}
+                                       , {"ten"     , 10}
+                                };
+
+    cout << "Multi-map{}: ";
+    exp_items = 12;
+    nitems = prBiDirIterateBackwards(multi_kv_map);
+    assert(nitems == exp_items);
+
+    // ---- Test with an unordered map: Unordered Key-value pair
+
+    unordered_map<string, int> ukv_map{  {"one"     , 1}
+                                       , {"two"     , 2}
+                                       , {"three"   , 3}
+                                       , {"four"    , 4}
+                                       , {"five"    , 5}
+                                       , {"six"     , 6}
+                                       , {"seven"   , 7}
+                                       , {"eight"   , 8}
+                                       , {"nine"    , 9}
+                                       , {"ten"     , 10}
+                                };
+
+    exp_items = 10;
+
+    // Unordered maps are stored as hash tables, which do not support moving
+    // reverse in the iteration. Hence, following call will result in a
+    // compiler error.
+    // nitems = prBiDirIterateBackwards(ukv_map);
+
+    cout << "Unordered-map{}: ";
+    // Print using usual generic container print method.
+    nitems = prContainer(ukv_map);
+    assert(nitems == exp_items);
+
+    TEST_END();
+}
+
+void
+test_prContainerIterateForwards(void)
+{
+    TEST_START();
+
+    // ---- Test with an unordered map: Unordered Key-value pair
+    unordered_map<string, int> ukv_map{  {"one"     , 1}
+                                       , {"two"     , 2}
+                                       , {"three"   , 3}
+                                       , {"four"    , 4}
+                                       , {"five"    , 5}
+                                       , {"six"     , 6}
+                                       , {"seven"   , 7}
+                                       , {"eight"   , 8}
+                                       , {"nine"    , 9}
+                                       , {"ten"     , 10}
+                                };
+
+    auto exp_items = 10;
+
+    // Unordered maps are stored as hash tables, which do not support moving
+    // reverse in the iteration. Hence, following call will result in a
+    // compiler error.
+    // nitems = prBiDirIterateBackwards(ukv_map);
+
+    cout << "Unordered-map{}: ";
+    auto nitems = prContainerIterateForwards(ukv_map);
+    assert(nitems == exp_items);
 
     TEST_END();
 }
