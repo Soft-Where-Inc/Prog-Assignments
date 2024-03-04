@@ -15,10 +15,38 @@
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
  *
+ * ----------------------------------------------------------------------------
  * Key-Points: ---- Iterators work through "Collections" ----
+ * ----------------------------------------------------------------------------
  *
  *  - Iterators through [begin(), end() ) - work on a half-open-range, where
  *    end() is "past-the-last-item-in-the-vector".
+ *
+ * Good summary of various iterators in C++20:
+ * [1] From slide no. 21, ~27.42 into the talk.
+ * [3] See also Sec 11.6. Container Overview, pg. 146 ]
+ *
+ * - Contiguous range/iterator:
+ *      - Can jump to and compare with any other position.
+ *      - Support: =, *, ++, ==, !=, --, +=, -=, <, <=, ... [], -
+ *      - Iterator may be raw pointer, range has std::ranges::data() accessor.
+ *
+ * - Random access range/iterator: (Almost similar to Contiguous range/iterator)
+ *      - Can jump to and compare with any other position.
+ *      - Support: =, *, ++, ==, !=, --, +=, -=, <, <=, ... [], -
+ *      - Only supported for deque<T> (Internally maintained as array of arrays.)
+ *      - So, can do deque_items[1000].
+ *
+ * - Bidirectional range/iterator:
+ *      - Can jump forward and backward.
+ *      - Support: =, *, ++, ==, !=, --
+ *      - list<>, associative containers (set<T>, map<K,V>, multimap<K,V>)
+ *
+ * - Forward range/iterator:
+ *      - Can iterate forward multiple times.
+ *      - Support: =, *, ++, ==, !=
+ *      - forward_list<>, unordered containers (hash tables, unordered_map<K,V>,
+ *        unordered_multimap<K,V>, unordered_set<T>, unordered_multiset<T>
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -739,7 +767,6 @@ test_prContainerIterateForwards(void)
                                        , {"nine"    , 9}
                                        , {"ten"     , 10}
                                 };
-
     auto exp_items = 10;
 
     // Unordered maps are stored as hash tables, which do not support moving
