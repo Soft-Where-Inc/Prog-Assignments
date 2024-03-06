@@ -25,6 +25,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_find(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -37,6 +38,7 @@ typedef struct test_fns
 TEST_FNS Test_fns[] = {
                           { "test_this"     , test_this }
                         , { "test_that"     , test_that }
+                        , { "test_find"     , test_find }
                       };
 
 // Test start / end info-msg macros
@@ -111,3 +113,43 @@ test_msg(string msg)
     assert(msg == "Hello World.");
 }
 
+/*
+ * test_find(): Exercise str.find() and str.substr() to see how they work.
+ */
+void
+test_find(void)
+{
+    TEST_START();
+
+    // Even though string has 2 ':'-s, find() returns 1st instance.
+    std::string s{"This:is a:separated string"};
+
+    int colon_pos = s.find(":");
+    cout << "colon pos=" << colon_pos << endl;
+    assert(colon_pos == 4);
+
+    // Characters not found, find() will return < 0;
+    assert(s.find('?') == -1);
+    int bang_pos = s.find("!");
+    cout << "find(!) returns " << s.find("!") << ", bang_pos=" << bang_pos << endl;
+    assert(s.find("!") == -1);
+
+    std::string prefix = s.substr(0, colon_pos);
+    cout << "Prefix is: '" << prefix << "'" << endl;
+    assert(prefix == "This");
+
+    // Suffix will include the 1st location of separator ':'
+    std::string suffix = s.substr(colon_pos, s.size());
+    cout << "Suffix is: '" << suffix << "'" << endl;
+    assert(suffix == ":is a:separated string");
+
+    TEST_END();
+}
+
+void
+test_template(void)
+{
+    TEST_START();
+
+    TEST_END();
+}
