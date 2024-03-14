@@ -1,4 +1,9 @@
-
+/**
+ * locations.c: Definitions
+ *
+ * History:
+ *  3/2024  - Original version provided by Charles Baylis
+ */
 #include <stdio.h>
 #include <stdint.h>
 

@@ -1,5 +1,13 @@
-// a very simple demo, showing how a program could use CREATE_ID
-// to track where a structure was allocated
+/**
+ * A very simple demo, showing how a program could use CREATE_ID
+ * to track where a structure was allocated.
+ *
+ * Build: gcc -o locations_example locations_example.c locations.c
+ * Usage: ./locations_example
+ *
+ * History:
+ *  3/2024  - Original version provided by Charles Baylis
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
