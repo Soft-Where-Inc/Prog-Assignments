@@ -14,6 +14,7 @@
  */
 
 #include <iostream>
+#include <vector>
 
 using namespace std;
 
@@ -26,6 +27,7 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 void test_find(void);
+void test_vector_of_pairs(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -36,13 +38,14 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
-                        , { "test_find"     , test_find }
-                      };
+              { "test_this"                 , test_this }
+            , { "test_that"                 , test_that }
+            , { "test_find"                 , test_find }
+            , { "test_vector_of_pairs"      , test_vector_of_pairs }
+};
 
 // Test start / end info-msg macros
-#define TEST_START()  cout << __func__ << " "
+#define TEST_START()  cout << __func__ << "(): "
 #define TEST_END()    cout << " ...OK" << endl
 
 /*
@@ -142,6 +145,32 @@ test_find(void)
     std::string suffix = s.substr(colon_pos, s.size());
     cout << "Suffix is: '" << suffix << "'" << endl;
     assert(suffix == ":is a:separated string");
+
+    TEST_END();
+}
+
+void
+test_vector_of_pairs(void)
+{
+    TEST_START();
+
+    std::vector<std::pair<std::string, int>> vofpairs;
+
+    // Explicitly create a new pair object, specifying types of items.
+    std::pair<std::string, int> a_pair{"Hello", 1};
+    vofpairs.push_back(a_pair);
+    assert(vofpairs.size() == 1);
+
+    // Insert a new item, creating the pair inline.
+    vofpairs.push_back(std::pair<std::string, int>{"World", 2});
+    assert(vofpairs.size() == 2);
+
+    cout << endl;
+    for (auto& item: vofpairs) {
+        cout << "Item: [ First='" << item.first   << "'"
+             <<       ", Second=" << item.second << " ]"
+             << endl;
+    }
 
     TEST_END();
 }
