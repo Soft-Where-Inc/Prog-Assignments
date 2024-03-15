@@ -2,7 +2,7 @@
  * A very simple demo, showing how a program could use CREATE_ID
  * to track where a structure was allocated.
  *
- * Build: gcc -o locations_example locations_example.c locations.c
+ * Build: gcc -o locations_example locations_example.c locations.c locations_file1.c
  * Usage: ./locations_example
  *
  * History:
@@ -13,30 +13,46 @@
 #include <stdlib.h>
 
 #include "locations.h"
+#include "locations_example.h"
 
-struct S
-{
-    int data[16];
-    int alloc_id;
-};
+// Function prototypes
+void minion(void);
 
 // allocate a struct S and set the alloc_id to match its allocation source
 // position
-struct S* alloc_S(int alloc_location_id)
+S *
+alloc_S(uint32_t alloc_location_id)
 {
-    struct S* result;
+    S* result;
     result = malloc(sizeof(*result));
     result->alloc_id = alloc_location_id;
     return result;
 }
 
-int main()
+int
+main()
 {
+  printf("Sizeof(struct location)=%lu bytes.\n", sizeof(struct location));
+
   // allocate a struct S
-  struct S *my_s = alloc_S(CREATE_ID());
+  S *my_s = alloc_S(CREATE_ID());
 
   // print the location where my_s was allocated
   print_loc(my_s->alloc_id);
 
+  S *another_s = alloc_S(CREATE_ID());
+  print_loc(another_s->alloc_id);
+
+  minion();
+
+  S *new_s = another_extern_minion();
+  print_loc(new_s->alloc_id);
   return 0;
+}
+
+void
+minion(void)
+{
+    S    *nested_s = alloc_S(CREATE_ID());
+    print_loc(nested_s->alloc_id);
 }
