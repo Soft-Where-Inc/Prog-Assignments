@@ -75,7 +75,7 @@
 #include <map>
 #include <unordered_map>
 #include <algorithm>
-#include <experimental/ranges>
+// #include <experimental/ranges>
 
 using namespace std;
 
@@ -99,7 +99,7 @@ void test_prRandomAccessContainer(void);
 void test_prBiDirIterateBackwards(void);
 void test_prContainerIterateForwards(void);
 void test_sort(void);
-void test_sort_range_basic(void);
+void test_const_iterators(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -127,7 +127,7 @@ TEST_FNS Test_fns[] = {
     , { "test_prContainerIterateForwards"
                                         , test_prContainerIterateForwards }
     , { "test_sort"                     , test_sort }
-    , { "test_sort_range_basic"         , test_sort_range_basic }
+    , { "test_const_iterators"          , test_const_iterators }
 };
 
 // Test start / end info-msg macros
@@ -830,6 +830,7 @@ test_sort(void)
 /*
  * Basic example of using std::range() to specify begin() / end() of vector to sort().
  */
+/*
 void
 test_sort_range_basic(void)
 {
@@ -840,6 +841,31 @@ test_sort_range_basic(void)
 
     cout << endl << "Sorted vector<int>:";
     prContainer(v);
+
+    TEST_END();
+}
+*/
+
+void
+test_const_iterators(void)
+{
+    TEST_START();
+
+    vector<int> v{0, -93, 42, 22, 16, 2000};
+
+    /*
+     * Use normal iterator and increment each item.
+     * BUT -BE-careful about pos++ (which increments iterator) v/s *pos++, which
+     * only dereference member, but will again only increment iterator.
+     * You need to do: (*pos)++ to increment the value itself!
+     */
+    for (auto pos = v.begin(); pos != v.end(); pos++) {
+        (*pos)++;
+    }
+    prContainer(v);
+
+    // Will fail with compilation error, due to use of constant iterator.
+    // for (auto pos = v.cbegin(); pos < v.cend(); pos++) { (*pos)++; }
 
     TEST_END();
 }
