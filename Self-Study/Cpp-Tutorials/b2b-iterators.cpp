@@ -63,10 +63,13 @@
  * be the same type as the begin iterator, or it may be different, which lets
  * Ranges support operations which simple iterator pairs can’t.
  *
+ * -- Generic programming, using templates (no need to be OO-always!)
+ *    See test_accumulate_doubles().
+ *
  * History:
  * -----------------------------------------------------------------------------
  */
-#include <iostream>
+#include <iostream>         // std::cout()
 #include <vector>
 #include <set>
 #include <list>
@@ -76,6 +79,7 @@
 #include <unordered_map>
 #include <algorithm>
 // #include <experimental/ranges>
+#include <numeric>          // std::accumulate()
 
 using namespace std;
 
@@ -100,6 +104,7 @@ void test_prBiDirIterateBackwards(void);
 void test_prContainerIterateForwards(void);
 void test_sort(void);
 void test_const_iterators(void);
+void test_accumulate_doubles(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -128,6 +133,7 @@ TEST_FNS Test_fns[] = {
                                         , test_prContainerIterateForwards }
     , { "test_sort"                     , test_sort }
     , { "test_const_iterators"          , test_const_iterators }
+    , { "test_accumulate_doubles"       , test_accumulate_doubles }
 };
 
 // Test start / end info-msg macros
@@ -866,6 +872,32 @@ test_const_iterators(void)
 
     // Will fail with compilation error, due to use of constant iterator.
     // for (auto pos = v.cbegin(); pos < v.cend(); pos++) { (*pos)++; }
+
+    TEST_END();
+}
+
+/*
+ * Test use of std::accumulate() to do some aggregate SUM() across a range
+ * of iterable items.
+ */
+void
+test_accumulate_doubles(void)
+{
+    TEST_START();
+
+    vector<double> vd{-20.22, -33.33, -5000, 42, 40.40, 16.16, 2000};
+    prContainer(vd);
+
+    // Find SUM() items in entire vector
+    auto vd_sum = 0.0;
+    vd_sum = std::accumulate(vd.begin(), vd.end(), vd_sum);
+    cout << "Sum=" << vd_sum;
+
+    // Find SUM() items in entire vector, w/o including far outliers on each end
+    vd_sum = 0.0;
+    std::sort(vd.begin(), vd.end());
+    vd_sum = std::accumulate(vd.begin() + 1, vd.end() - 1, vd_sum);
+    cout << "  Sum=" << vd_sum << " (without including outliers)" << endl;
 
     TEST_END();
 }
