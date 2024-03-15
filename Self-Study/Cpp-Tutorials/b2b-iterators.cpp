@@ -105,6 +105,7 @@ void test_prContainerIterateForwards(void);
 void test_sort(void);
 void test_const_iterators(void);
 void test_accumulate_doubles(void);
+void test_vector_size_capacity_gotcha(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -134,6 +135,8 @@ TEST_FNS Test_fns[] = {
     , { "test_sort"                     , test_sort }
     , { "test_const_iterators"          , test_const_iterators }
     , { "test_accumulate_doubles"       , test_accumulate_doubles }
+    , { "test_vector_size_capacity_gotcha"
+                                        , test_vector_size_capacity_gotcha }
 };
 
 // Test start / end info-msg macros
@@ -898,6 +901,55 @@ test_accumulate_doubles(void)
     std::sort(vd.begin(), vd.end());
     vd_sum = std::accumulate(vd.begin() + 1, vd.end() - 1, vd_sum);
     cout << "  Sum=" << vd_sum << " (without including outliers)" << endl;
+
+    TEST_END();
+}
+
+/*
+ * Test behaviour that vectors may get re-sized upon new insert which will
+ * throw-off existing position location iterators.
+ */
+void
+test_vector_size_capacity_gotcha(void)
+{
+    TEST_START();
+
+    size_t vcap = 5;
+
+    vector<double> vd;  // {-20.22, -33.33, -5000, 42, 40.40, 16.16, 2000};
+
+    // You can reserve a capacity by this interface
+    vd.reserve(vcap);
+    cout << endl << "Vector vd size=" << vd.size() << ", capacity=" << vd.capacity();
+
+    vd.push_back(-20.22);
+    vd.push_back(-33.33);
+    vd.push_back(-5000);
+    vd.push_back(-42);
+    vd.push_back(42);
+    cout << endl << "Vector vd size=" << vd.size() << ", capacity=" << vd.capacity();
+
+    auto found42 = std::find(vd.begin(), vd.end(), 42);
+    cout << endl << "found42=" << *found42 << endl;
+
+    size_t old_index = (found42 - vd.begin());
+
+    vd.push_back(-42);
+    vd.push_back(-41);
+    vd.push_back(-40);
+    cout << endl << "Vector vd size=" << vd.size() << ", capacity=" << vd.capacity();
+    cout << endl << "found42=" << *found42 << endl;
+
+    // Attempt to use the stale `found42` iterator to walk to end of vector
+    // You will likely see garbage being printed.
+    // If you don't have the check for "old_index < vd.size()", this loop will
+    // never terminate, as vd.end() has completely changed to an end-iterator
+    // position, in newly allocated memory, whereas `found42` is an iterator in
+    // the old vector's memory.
+    for (auto pos = found42; (pos != vd.end() && old_index < vd.size());
+         pos++, old_index++) {
+        cout << "new Item=" << *pos << endl;
+    }
 
     TEST_END();
 }
