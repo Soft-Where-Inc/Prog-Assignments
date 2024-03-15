@@ -49,12 +49,21 @@ extern struct location loc_id_ref;
  * of struct location describing for a function, filename, and line number
  * and returns the offset from the loc_id_ref pointer.
  */
+#if __APPLE__
+#define CREATE_ID_INNER(func, file, line) \
+  ({ \
+    static struct location cur_loc \
+        __attribute__((section("__DATA, loc_ids"))) = {func, file, line}; \
+   ((intptr_t)&cur_loc - (intptr_t)&loc_id_ref); \
+  })
+#else   // __APPLE__
 #define CREATE_ID_INNER(func, file, line) \
   ({ \
     static struct location cur_loc \
         __attribute__((section("loc_ids"))) = {func, file, line}; \
    ((intptr_t)&cur_loc - (intptr_t)&loc_id_ref); \
   })
+#endif  // __APPLE__
 
 /* Get an 4-byte id describing the source position where this macro is used */
 #define CREATE_ID() CREATE_ID_INNER(__FUNCTION__, __FILE__, __LINE__)

@@ -9,7 +9,11 @@
 
 #include "locations.h"
 
+#if __APPLE__
+struct location loc_id_ref __attribute__((section("__DATA, loc_ids")));
+#else
 struct location loc_id_ref __attribute__((section("loc_ids")));
+#endif  // __APPLE__
 
 void print_loc(int id)
 {
