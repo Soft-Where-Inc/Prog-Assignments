@@ -23,6 +23,8 @@
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
  *
+ * On Mac, to detect memory leaks, do: $ leaks -atExit -- ./b2b-iterators ...
+ *
  * ----------------------------------------------------------------------------
  * Key-Points: ---- Iterators work through "Collections" ----
  * ----------------------------------------------------------------------------
@@ -106,6 +108,7 @@ void test_sort(void);
 void test_const_iterators(void);
 void test_accumulate_doubles(void);
 void test_vector_size_capacity_gotcha(void);
+void test_memory_allocation();
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -137,6 +140,7 @@ TEST_FNS Test_fns[] = {
     , { "test_accumulate_doubles"       , test_accumulate_doubles }
     , { "test_vector_size_capacity_gotcha"
                                         , test_vector_size_capacity_gotcha }
+    , { "test_memory_allocation"        , test_memory_allocation }
 };
 
 // Test start / end info-msg macros
@@ -146,6 +150,33 @@ TEST_FNS Test_fns[] = {
 // Fabricate a string to track code-location of call-site.
 #define __LOC__ \
     "[" + std::string{__func__} + "():" + std::to_string(__LINE__) + "] "
+
+/**
+ * Some class to play around with objects, memory allocation etc.
+ */
+class Person
+{
+  public:
+    Person() {};
+
+    Person(uint32_t age, string first_name, string last_name) {
+        age_ = age;
+        first_name_ = first_name;
+        last_name_ = last_name;
+    }
+
+  private:
+    uint32_t    age_;
+    string      first_name_;
+    string      last_name_;
+
+    friend ostream& operator<<(ostream& os, const Person& person) {
+        os << "[Name=" << person.first_name_
+           << " " << person.last_name_
+           << ", Age=" << person.age_ << "]";
+        return os;
+    }
+};
 
 /*
  * *****************************************************************************
@@ -223,6 +254,65 @@ ostream& operator<<(ostream& os, const pair<T1,T2>& apair)
        << "," << s_sqc << apair.second << s_sqc
        << ")";
     return os;
+}
+
+/*
+ * **************************************************************************
+ * Simple function to check if a given address is from stack / heap.
+ *
+ * As a refresher, here's a pictorial of how memory layouts can be for a
+ * stack based execution. On most h/w stack addresses go from high to low mem.
+ *
+ * In fig. below, stkf1_a & stk2_b are variables declared on-stack in
+ * adjacent stack frames. On the left is an example of the stack frames
+ * going from high to low addresses, while on the right is an example showing
+ * stack frames going from low to high addresses.
+ *
+ *                              (    (&stkf1_a < &stkf2_b)
+ *                               && ((&stkf1_a + GUARDSIZE) > &stkf2_b) )
+ *     low──►                         low──►
+ *           ▲                             │
+ *           │                             │
+ *           │                             │
+ *           ├ ─ ─ ──[Stack Guard Size]─ ─ ┤
+ *           │                             │
+ *           │   stkf2_b           stkf1_a │
+ *           │                             │
+ *           ├───────[Frame boundary]──────┤
+ *           │                             │
+ *           │   stkf1_a           stkf2_b │
+ *           │                             │
+ *           │                             │
+ *           ├ ─ ─ ──[Stack Guard Size]─ ─ ┤
+ *           │                             │
+ *           │                             │
+ *           │                             ▼
+ *     high──►                       high──►
+ *
+ *   (    (&stkf1_a > &stkf2_b)
+ *    && ((&stkf1_a - GUARDSIZE) < &stkf2_b) )
+ *
+ * In code below, (&stkf1_a is addr) and (&stkf2_b is &dummy1)
+ * **************************************************************************
+ */
+bool
+addrOnStack(const char * const addr)
+{
+    // Define a local variable and check if its address matches the input addr
+    char dummy1;
+    char dummy2;
+
+    // True => fig on the right; False => fig on the left (common case in h/w)
+    bool stack_is_growing_up_in_addr = (&dummy2 > &dummy1);
+    constexpr auto stack_guard = (1024 * 1024); // bytes
+
+    printf(" [stack_is_growing_up_in_addr=%d, addr=%p, &dummy1=%p ]",
+            stack_is_growing_up_in_addr, addr, &dummy1);
+    if (stack_is_growing_up_in_addr) {
+        return ((addr < &dummy1) && (addr + stack_guard > &dummy1));
+    } else {
+        return ((addr > &dummy1) && ((addr - stack_guard) < &dummy1));
+    }
 }
 
 /*
@@ -951,6 +1041,52 @@ test_vector_size_capacity_gotcha(void)
         cout << "new Item=" << *pos << endl;
     }
 
+    TEST_END();
+}
+
+/**
+ * Simple test case to verify how memory allocation works by examining addresses
+ * of objects declared on-stack and on the heap.
+ */
+void
+test_memory_allocation(void)
+{
+    TEST_START();
+
+    int i_on_stack;
+    int j_on_stack;
+
+    bool addr_is_on_stack = addrOnStack((const char *) &i_on_stack);
+    assert(addr_is_on_stack == true);
+
+    cout << endl << "addr of i=" << &i_on_stack << ", i=" << i_on_stack
+                 << ", onstack=" << addr_is_on_stack;
+
+    cout << endl << "addr of j=" << &j_on_stack << ", j=" << j_on_stack;
+
+    Person emplA(42, "Jerry", "Brown");
+    cout << endl << "addr of empA=" << &emplA << ", size=" << sizeof(emplA)
+                 // << ", onstack=" << addr_is_on_stack
+                 << " " << emplA;
+
+    int diff_addr = (int) ((size_t) &i_on_stack - (size_t) &j_on_stack);
+    cout << endl << "diff (&j - &i)=" << diff_addr << " bytes";
+
+    diff_addr = (int) ((size_t) &j_on_stack - (size_t) &emplA);
+    cout << endl << "diff (&e - &j)=" << diff_addr << " bytes";
+
+    // Use the NEW operator to dynamically allocate a Person object,
+    // which returns a pointer to the allocated memory.
+    Person * emplNew = new Person(44, "New", "Employee");
+    addr_is_on_stack = addrOnStack((const char *) emplNew);
+    assert(addr_is_on_stack == false);
+
+    cout << endl << "addr of empNew=" << emplNew
+                 << ", size=" << sizeof(*emplNew)
+                 << ", onstack=" << addr_is_on_stack
+                 << " " << *emplNew;
+
+    delete emplNew; // Otherwise, there will be a memory leak
     TEST_END();
 }
 
