@@ -110,6 +110,7 @@ void test_accumulate_doubles(void);
 void test_vector_size_capacity_gotcha(void);
 void test_memory_allocation();
 void test_xform_list_vector_of_squares();
+void test_xform_use_back_inserter();
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -144,6 +145,7 @@ TEST_FNS Test_fns[] = {
     , { "test_memory_allocation"        , test_memory_allocation }
     , { "test_xform_list_vector_of_squares"
                                         , test_xform_list_vector_of_squares }
+    , { "test_xform_use_back_inserter"  , test_xform_use_back_inserter }
 };
 
 // Test start / end info-msg macros
@@ -1179,6 +1181,45 @@ test_xform_list_vector_of_squares(void)
                    );
 
     cout << "Sorted scores (after xform) : "; prContainer(sorted_scores);
+    assert(sorted_scores.size() == scores.size());
+
+    TEST_END();
+}
+
+/**
+ * Test case to exercise std::transform() method to apply a common function()
+ * operation to all members of an iterable source container and overwrites the
+ * result destination container.
+ *
+ * This is the same as test_xform_list_vector_of_squares(), except we show the
+ * usage of back_inserter() iterator that can work with an empty destination
+ * container, which become the target destination iterator ptr of the
+ * std::transform().
+ */
+void
+test_xform_use_back_inserter(void)
+{
+    TEST_START();
+
+    set<int> scores;
+    cout << endl;
+
+    // Load a bunch of unsorted score
+    scores.insert(33);
+    scores.insert(22);
+    scores.insert(10);
+    scores.insert(55);
+    scores.insert(45);
+    cout << "Unsorted scores: "; prContainer(scores);
+
+    vector<int> sorted_scores;
+
+    std::transform(scores.begin(), scores.end(),
+                   std::back_inserter(sorted_scores),   // <<<< Variation!
+                   [](int i1) { return (i1 * i1); }
+                   );
+
+    cout << "Sorted scores  : "; prContainer(sorted_scores);
     assert(sorted_scores.size() == scores.size());
 
     TEST_END();
