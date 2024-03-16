@@ -1105,6 +1105,12 @@ test_memory_allocation(void)
  * result destination container. Use a lambda function, as a convenience, to
  * define the square() operation.
  *
+ * NOTE: std::transform() simply -OVER-WRITES- destination pointer iterator
+ * and increments it. It does -NOT- know where this dest iterator ptr is
+ * pointing to. If the destination container has no items allocated to it,
+ * transform() will simply over-write stuff, without actually hitting any
+ * valid memory location.
+ *
  * Show two examples of using transform(); one using a lamda for square() and
  * one using square() function defined separately.
  */
@@ -1126,6 +1132,7 @@ test_xform_list_vector_of_squares(void)
 
     vector<int> sorted_scores;
 
+    // ------------------------------------------------------------------------
     // It is not sufficient for transform() to work only when we have
     // reserved some space in the destination container.
     sorted_scores.reserve(scores.size());
@@ -1148,6 +1155,30 @@ test_xform_list_vector_of_squares(void)
                    );
 
     cout << "Sorted scores  : "; prContainer(sorted_scores);
+    assert(sorted_scores.size() == scores.size());
+
+    // ------------------------------------------------------------------------
+    // Re-do test by emptying out container. Then resize() container to create
+    // some empty elements. Then, transform() should do the right thing.
+
+    size_t capacity = sorted_scores.capacity();
+    while (sorted_scores.size()) { sorted_scores.pop_back(); }
+    assert(sorted_scores.size() == 0);
+    assert(sorted_scores.capacity() == capacity);
+
+    cout << endl;
+    cout << "Sorted scores (after empty) : "; prContainer(sorted_scores);
+
+    sorted_scores.resize(scores.size());
+    cout << "Sorted scores (after resize): "; prContainer(sorted_scores);
+
+    // ... In order to transform() to do its magic.
+    std::transform(scores.begin(), scores.end(), sorted_scores.begin(),
+                   // Lambda expression begins here
+                   [](int i1) { return (i1 * i1); }
+                   );
+
+    cout << "Sorted scores (after xform) : "; prContainer(sorted_scores);
     assert(sorted_scores.size() == scores.size());
 
     TEST_END();
