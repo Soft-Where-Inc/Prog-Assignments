@@ -109,6 +109,7 @@ void test_const_iterators(void);
 void test_accumulate_doubles(void);
 void test_vector_size_capacity_gotcha(void);
 void test_memory_allocation();
+void test_xform_list_vector_of_squares();
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -141,6 +142,8 @@ TEST_FNS Test_fns[] = {
     , { "test_vector_size_capacity_gotcha"
                                         , test_vector_size_capacity_gotcha }
     , { "test_memory_allocation"        , test_memory_allocation }
+    , { "test_xform_list_vector_of_squares"
+                                        , test_xform_list_vector_of_squares }
 };
 
 // Test start / end info-msg macros
@@ -476,6 +479,12 @@ size_t prBiDirIterateBackwards(const T& elements)
     } while (pos != elements.begin());
     cout << "]\n";
     return elements.size();
+}
+
+// square() Implement square op and return result
+int square(int val)
+{
+    return (val * val);
 }
 
 // **** Test cases ****
@@ -1087,6 +1096,60 @@ test_memory_allocation(void)
                  << " " << *emplNew;
 
     delete emplNew; // Otherwise, there will be a memory leak
+    TEST_END();
+}
+
+/**
+ * Test case to exercise std::transform() method to apply a common function()
+ * operation to all members of an iterable source container and overwrites the
+ * result destination container. Use a lambda function, as a convenience, to
+ * define the square() operation.
+ *
+ * Show two examples of using transform(); one using a lamda for square() and
+ * one using square() function defined separately.
+ */
+void
+test_xform_list_vector_of_squares(void)
+{
+    TEST_START();
+
+    set<int> scores;
+    cout << endl;
+
+    // Load a bunch of unsorted score
+    scores.insert(33);
+    scores.insert(22);
+    scores.insert(10);
+    scores.insert(55);
+    scores.insert(45);
+    cout << "Unsorted scores: "; prContainer(scores);
+
+    vector<int> sorted_scores;
+
+    // It is not sufficient for transform() to work only when we have
+    // reserved some space in the destination container.
+    sorted_scores.reserve(scores.size());
+
+    std::transform(scores.begin(), scores.end(), sorted_scores.begin(),
+                   // Lambda expression begins here
+                   [](int i1) { return (i1 * i1); }
+                   );
+
+    cout << "Sorted scores  : "; prContainer(sorted_scores);
+    assert(sorted_scores.size() == 0);
+
+    // We need to have some data items loaded in destination container ...
+    for (auto pos: scores) { sorted_scores.push_back(pos); }
+
+    // ... In order to transform() to do its magic.
+    std::transform(scores.begin(), scores.end(), sorted_scores.begin(),
+                   // Lambda expression begins here
+                   [](int i1) { return (i1 * i1); }
+                   );
+
+    cout << "Sorted scores  : "; prContainer(sorted_scores);
+    assert(sorted_scores.size() == scores.size());
+
     TEST_END();
 }
 
