@@ -1298,6 +1298,8 @@ test_remove_from_list(void)
 /**
  * Test case to show use of filter views package to 'remove' items from a
  * container by filtering them out with a predicate.
+ *
+ * Example showing use of Pipe | and views::filter
  */
 void
 test_views_filter_from_list(void)
@@ -1317,7 +1319,18 @@ test_views_filter_from_list(void)
                 };
 
 #if __linux__
-    // Print all elements from list (not != 1)
+    /*
+     * Print all elements from list (not != 1)
+     * On top of the collection, place a filter::view, with a predicate.
+     * This works with an iterator on the view, applying the filter, which
+     * internally uses the vector (here, list) iterator.
+     * Essentially, internally we are doing something like:
+     *
+     * for (auto&item : l) {
+     *      if (!filter(item)) { continue; }
+     *      std::cout << item << endl;
+     * }
+     */
     cout << "Filter item!=" << skip_item << " [ ";
     for (auto& item : l | std::views::filter(not1)) {
         cout << item << " ";
