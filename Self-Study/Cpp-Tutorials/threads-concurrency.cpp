@@ -54,6 +54,10 @@ TEST_FNS Test_fns[] = {
 #define TEST_END()    cout << " ...OK" << endl
 #define TEST_SKIP(msg)   do { cout << "... Unsupported: " << msg << endl; return; } while(0)
 
+// Fabricate a string to track code-location of call-site.
+#define __LOC__ \
+    "[" + std::string{__func__} + ":" + std::to_string(__LINE__) + "] "
+
 /*
  * *****************************************************************************
  * main()
@@ -123,9 +127,12 @@ test_msg(string msg)
 }
 
 /**
+ * The class thread represents a single thread of execution. Threads allow
+ * multiple functions to execute concurrently.
+ *
  * Most basic invocation of a thread, with the thread-handler-function
  * defined by an inline lambda-function. All that this thread does is to
- * sleep for 1s, and then exits.
+ * sleep for a small interval, and then exits.
  */
 void
 test_threads_basic(void)
@@ -133,7 +140,9 @@ test_threads_basic(void)
     TEST_START();
 
     std::thread([](){
-                std::this_thread::sleep_for(1s);
+                auto nms = 500;
+                cout << __LOC__ << "Sleeping for " << nms << " milliseconds ...";
+                std::this_thread::sleep_for(std::chrono::milliseconds(nms));
             }).join();
 
     TEST_END();
