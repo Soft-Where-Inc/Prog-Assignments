@@ -11,8 +11,12 @@
  * History:
  * -----------------------------------------------------------------------------
  */
-
 #include <iostream>
+
+#if __linux__
+#include <cstring>
+#include <cassert>
+#endif // __linux__
 
 using namespace std;
 
@@ -41,6 +45,7 @@ TEST_FNS Test_fns[] = {
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << " "
 #define TEST_END()    cout << " ...OK" << endl
+#define TEST_SKIP(msg)   do { cout << "... Unsupported: " << msg << endl; return; } while(0)
 
 /*
  * *****************************************************************************
@@ -110,3 +115,10 @@ test_msg(string msg)
     assert(msg == "Hello World.");
 }
 
+void
+test_template(void)
+{
+    TEST_START();
+
+    TEST_END();
+}
