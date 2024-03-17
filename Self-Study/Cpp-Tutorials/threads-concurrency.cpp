@@ -16,6 +16,8 @@
  */
 #include <iostream>
 
+#include <thread>   // For std::thread, std::this_thread
+
 #if __linux__
 #include <cstring>
 #include <cassert>
@@ -31,6 +33,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_threads_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -41,9 +44,10 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
-                      };
+      { "test_this"                 , test_this }
+    , { "test_that"                 , test_that }
+    , { "test_threads_basic"        , test_threads_basic }
+};
 
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << " "
@@ -116,6 +120,23 @@ test_msg(string msg)
 {
     TEST_START();
     assert(msg == "Hello World.");
+}
+
+/**
+ * Most basic invocation of a thread, with the thread-handler-function
+ * defined by an inline lambda-function. All that this thread does is to
+ * sleep for 1s, and then exits.
+ */
+void
+test_threads_basic(void)
+{
+    TEST_START();
+
+    std::thread([](){
+                std::this_thread::sleep_for(1s);
+            }).join();
+
+    TEST_END();
 }
 
 void
