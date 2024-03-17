@@ -84,9 +84,13 @@
 #include <map>
 #include <unordered_map>
 #include <algorithm>
-// #include <experimental/ranges>
 #include <numeric>          // std::accumulate()
-// #include <experimental/views>    // Unsupported in g++ 13.1 version
+
+#if __linux__
+#include <ranges>           // Mac: Unsupported in g++ 13.1 version
+#include <cstring>
+#include <cassert>
+#endif // __linux__
 
 using namespace std;
 
@@ -118,6 +122,15 @@ void test_xform_list_vector_of_squares();
 void test_xform_use_back_inserter();
 void test_remove_from_list();
 void test_views_filter_from_list();
+
+/*
+ * Certain libraries are seemingly only found on my Linux g++ compiler,
+ * g++ (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0. And not on Mac/g++
+ * g++ --version: Apple clang version 13.1.6 (clang-1316.0.21.2.5)
+ */
+#if __linux__
+void test_sort_range_basic(void);
+#endif // __linux__
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -155,6 +168,11 @@ TEST_FNS Test_fns[] = {
     , { "test_xform_use_back_inserter"  , test_xform_use_back_inserter }
     , { "test_remove_from_list"         , test_remove_from_list }
     , { "test_views_filter_from_list"   , test_views_filter_from_list }
+
+#if __linux__
+    , { "test_sort_range_basic"         , test_sort_range_basic }
+#endif // __linux__
+
 };
 
 // Test start / end info-msg macros
@@ -950,21 +968,21 @@ test_sort(void)
 /*
  * Basic example of using std::range() to specify begin() / end() of vector to sort().
  */
-/*
+#if __linux__
 void
 test_sort_range_basic(void)
 {
     TEST_START();
 
     vector<int> v{0, -93, 42, 22, 16, 2000};
-    std::ranges::sort(v);
 
-    cout << endl << "Sorted vector<int>:";
-    prContainer(v);
+    cout << "\nUnxorted vector<int> :"; prContainer(v);
+    std::ranges::sort(v);
+    cout << "Sorted vector<int>   :"; prContainer(v);
 
     TEST_END();
 }
-*/
+#endif // __linux__
 
 void
 test_const_iterators(void)
@@ -1292,21 +1310,20 @@ test_views_filter_from_list(void)
     auto l_size = l.size();
     cout << "\nBefore filter: "; prContainer(l);
 
+    auto skip_item = 1;
     // Define a lambda function to filter out specific item
-    auto not1 = [](const auto& elem) {
-                    return(elem != 1);
+    auto not1 = [skip_item](const auto& elem) {
+                    return(elem != skip_item);
                 };
 
-    TEST_SKIP("Range Views");
-
+#if __linux__
     // Print all elements from list (not != 1)
-#if UNDEF
-    cout << "[ ";
+    cout << "Filter item!=" << skip_item << " [ ";
     for (auto& item : l | std::views::filter(not1)) {
         cout << item << " ";
     }
-#endif  // UNDEF
     cout << " ]\n";
+#endif // __linux__
 
     TEST_END();
 }
