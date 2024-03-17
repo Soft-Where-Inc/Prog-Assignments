@@ -25,6 +25,10 @@
  *
  * On Mac, to detect memory leaks, do: $ leaks -atExit -- ./b2b-iterators ...
  *
+ * NOTE: Some of the newer C++20 and 23 features may not have been implemented by
+ *       latest versions of g++ or clang.
+ *       Check: https://en.cppreference.com/w/cpp/compiler_support
+ *
  * ----------------------------------------------------------------------------
  * Key-Points: ---- Iterators work through "Collections" ----
  * ----------------------------------------------------------------------------
@@ -82,6 +86,7 @@
 #include <algorithm>
 // #include <experimental/ranges>
 #include <numeric>          // std::accumulate()
+// #include <experimental/views>    // Unsupported in g++ 13.1 version
 
 using namespace std;
 
@@ -112,6 +117,7 @@ void test_memory_allocation();
 void test_xform_list_vector_of_squares();
 void test_xform_use_back_inserter();
 void test_remove_from_list();
+void test_views_filter_from_list();
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -148,11 +154,13 @@ TEST_FNS Test_fns[] = {
                                         , test_xform_list_vector_of_squares }
     , { "test_xform_use_back_inserter"  , test_xform_use_back_inserter }
     , { "test_remove_from_list"         , test_remove_from_list }
+    , { "test_views_filter_from_list"   , test_views_filter_from_list }
 };
 
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << ": "
 #define TEST_END()    cout << " ...OK" << endl
+#define TEST_SKIP(msg)   do { cout << " Unsupported: " << msg << endl; return; } while(0)
 
 // Fabricate a string to track code-location of call-site.
 #define __LOC__ \
@@ -1265,6 +1273,40 @@ test_remove_from_list(void)
     cout << "After  removing " << nremoved << " items: "; prContainer(l2);
 
     assert(l_size = l2.size() + nremoved);
+
+    TEST_END();
+}
+
+/**
+ * Test case to show use of filter views package to 'remove' items from a
+ * container by filtering them out with a predicate.
+ */
+void
+test_views_filter_from_list(void)
+{
+    TEST_START();
+
+    std::list<int> l = {1, 100, 2, 1, 10, 3, 10, 1, 11, -1, 12};
+    auto nitems_to_remove = 3;  // # of instances of 1 in the list.
+
+    auto l_size = l.size();
+    cout << "\nBefore filter: "; prContainer(l);
+
+    // Define a lambda function to filter out specific item
+    auto not1 = [](const auto& elem) {
+                    return(elem != 1);
+                };
+
+    TEST_SKIP("Range Views");
+
+    // Print all elements from list (not != 1)
+#if UNDEF
+    cout << "[ ";
+    for (auto& item : l | std::views::filter(not1)) {
+        cout << item << " ";
+    }
+#endif  // UNDEF
+    cout << " ]\n";
 
     TEST_END();
 }
