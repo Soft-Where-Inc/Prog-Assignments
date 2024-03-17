@@ -1,6 +1,6 @@
 /*
  * -----------------------------------------------------------------------------
- * b2b-iterators.cpp: Back to Basics C++ Iterators
+ * b2b-iterators-CppCon-2023.cpp: Back to Basics C++ Iterators
  * Talk by Nicolai Josuttis - CppCon 2023
  * -----------------------------------------------------------------------------
  *
@@ -19,7 +19,7 @@
  *  [6] https://learn.microsoft.com/en-us/cpp/standard-library/range-adaptors?view=msvc-170
  *  	RESOLVE: Also see examples on range-adaptors from above article.
  *
- * Usage: g++ -std=c++20 -o b2b-iterators b2b-iterators.cpp
+ * Usage: g++ -std=c++20 -o b2b-iterators b2b-iterators-CppCon-2023.cpp
  *        ./b2b-iterators [test_*]
  *        ./b2b-iterators [--help | test_<something> | test_<prefix> ]
  *
