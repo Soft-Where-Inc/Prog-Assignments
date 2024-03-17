@@ -3,7 +3,11 @@
  * threads-concurrency.cpp: Simple test-cases to exercise C++ std::thread
  * concurrency primitives.
  *
+ * The class `thread` represents a single thread of execution. Threads allow
+ * multiple functions to execute concurrently.
+ *
  * Ref: Based on following CppCon talk
+ *
  *  [1] C++ Memory Model: from C++11 to C++23 - Alex Dathskovsky - CppCon 2023
  *      https://www.youtube.com/watch?v=SVEYNEWZLo4 ; Starting ~29m.10s
  *
@@ -127,12 +131,15 @@ test_msg(string msg)
 }
 
 /**
- * The class thread represents a single thread of execution. Threads allow
- * multiple functions to execute concurrently.
- *
+ * *****************************************************************************
  * Most basic invocation of a thread, with the thread-handler-function
  * defined by an inline lambda-function. All that this thread does is to
  * sleep for a small interval, and then exits.
+ *
+ * The advantage of using std::thread library is that you do -NOT- need
+ * to further link with -pthread (for Posix threads library). C++ STL
+ * takes care of this library by default.
+ * *****************************************************************************
  */
 void
 test_threads_basic(void)
