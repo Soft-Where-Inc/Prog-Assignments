@@ -11,7 +11,11 @@
  *  [1] C++ Memory Model: from C++11 to C++23 - Alex Dathskovsky - CppCon 2023
  *      https://www.youtube.com/watch?v=SVEYNEWZLo4 ; Starting ~29m.10s
  *
- * Usage: g++ -o threads-concurrency threads-concurrency.cpp
+ * Pre-requisites:
+ *  - {fmt} printing library: https://fmt.dev/latest/index.html
+ *    Mac> $ brew reinstall fmt
+ *
+ * Usage: g++ -std=c++20 -o threads-concurrency -lfmt threads-concurrency.cpp
  *        ./threads-concurrency [test_*]
  *        ./threads-concurrency [--help | test_<something> | test_<prefix> ]
  *
@@ -21,6 +25,7 @@
 #include <iostream>
 
 #include <thread>   // For std::thread, std::this_thread
+#include <fmt/core.h>
 
 #if __linux__
 #include <cstring>
@@ -38,6 +43,7 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 void test_threads_basic(void);
+void test_thread_local(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -51,6 +57,7 @@ TEST_FNS Test_fns[] = {
       { "test_this"                 , test_this }
     , { "test_that"                 , test_that }
     , { "test_threads_basic"        , test_threads_basic }
+    , { "test_thread_local"         , test_thread_local }
 };
 
 // Test start / end info-msg macros
@@ -131,7 +138,7 @@ test_msg(string msg)
 }
 
 /**
- * *****************************************************************************
+ * ****************************************************************************
  * Most basic invocation of a thread, with the thread-handler-function
  * defined by an inline lambda-function. All that this thread does is to
  * sleep for a small interval, and then exits.
@@ -151,6 +158,67 @@ test_threads_basic(void)
                 cout << __LOC__ << "Sleeping for " << nms << " milliseconds ...";
                 std::this_thread::sleep_for(std::chrono::milliseconds(nms));
             }).join();
+
+    TEST_END();
+}
+
+/**
+ * ****************************************************************************
+ * Exercise the use of thread-local variables.
+ */
+constexpr uint64_t      tlocal_ctr_initial = 0;
+thread_local uint64_t   tlocal_ctr = tlocal_ctr_initial;
+
+// Define a thread-function handler to increment this thread-local counter
+// Return the final value via an output reference parameter
+void
+do_count(const string tname, int ntimes, uint64_t& ret)
+{
+    // Increment thread-local counter ntimes
+    for (auto i = 0; i < ntimes; i++) {
+        tlocal_ctr++;
+    }
+    fmt::print("Excuted ThreadID='{}', new tlocal_ctr={}\n", tname, tlocal_ctr);
+
+    // Return final value of thread-local counter for this thread
+    ret = tlocal_ctr;
+}
+
+/**
+ * ****************************************************************************
+ * Spawn 2 concurrent threads, each increment its own thread-local counter.
+ * Verify the output returned by thread-handler is the expected counter value.
+ * ****************************************************************************
+ */
+void
+test_thread_local(void)
+{
+    TEST_START();
+
+    cout << endl;
+
+    uint64_t    reta{};
+    uint64_t    retb{};
+
+    // Start two threads, invoking the common incrementer function, returning
+    // the final result of incremented thread-local counter via output param
+    auto ntimes_a = 10;
+    std::thread ta(do_count, "tA-ntimes=10", 10, std::ref(reta));
+
+    auto ntimes_b = 20;
+    std::thread tb(do_count, "tB-ntimes=20", 20, std::ref(retb));
+
+    ta.join();
+    tb.join();
+
+    fmt::print("reta={}, retb={}, main tlocal_ctr={}\n", reta, retb, tlocal_ctr);
+    
+    // Verify test results
+    assert(reta == ntimes_a);   // each thread's local counter should have
+    assert(retb == ntimes_b);   // been incremented
+
+    // Main thread's counter should have remained unchanged at its initial value.
+    assert(tlocal_ctr == tlocal_ctr_initial);
 
     TEST_END();
 }
