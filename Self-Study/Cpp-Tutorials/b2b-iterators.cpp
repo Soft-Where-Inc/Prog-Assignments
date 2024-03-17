@@ -178,7 +178,7 @@ TEST_FNS Test_fns[] = {
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << ": "
 #define TEST_END()    cout << " ...OK" << endl
-#define TEST_SKIP(msg)   do { cout << " Unsupported: " << msg << endl; return; } while(0)
+#define TEST_SKIP(msg)   do { cout << "... Unsupported: " << msg << endl; return; } while(0)
 
 // Fabricate a string to track code-location of call-site.
 #define __LOC__ \
@@ -1336,6 +1336,8 @@ test_views_filter_from_list(void)
         cout << item << " ";
     }
     cout << " ]\n";
+#else
+    TEST_SKIP("std::ranges, std::views");
 #endif // __linux__
 
     TEST_END();
