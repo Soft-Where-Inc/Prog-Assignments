@@ -13,11 +13,28 @@
  *
  * Pre-requisites:
  *  - {fmt} printing library: https://fmt.dev/latest/index.html
- *    Mac> $ brew reinstall fmt
  *
- * Usage: g++ -std=c++20 -o threads-concurrency -lfmt threads-concurrency.cpp
- *        ./threads-concurrency [test_*]
- *        ./threads-concurrency [--help | test_<something> | test_<prefix> ]
+ * ---- Usage: ----
+ *
+ *  Linux> $ sudo apt remove libfmt8/jammy
+ *  Linux> $ sudo apt-get install -y libfmt8/jammy
+ *  Linux> $ sudo apt-get install -y libfmt-dev/jammy
+ *
+ *  # ------------------------------------------------------------------------
+ *  # Make sure to pass -l<library> name -after- the source file that uses it
+ * https://stackoverflow.com/questions/61594396/linking-errors-with-fmt-undefined-reference-to-stdstring-fmtv6internal
+ *  # ------------------------------------------------------------------------
+ *
+ *  Linux> $ g++ -std=c++20 -o threads-concurrency threads-concurrency.cpp -lfmt
+ *
+ *  # To find out search-path used by linked to load libraries:
+ *  Linux> $ ld --verbose | grep SEARCH_DIR | tr -s ' ;' \\012
+ *
+ *    Mac> $ brew reinstall fmt
+ *    Mac> $ g++ -std=c++20 -o threads-concurrency -lfmt threads-concurrency.cpp
+ *
+ *  $ ./threads-concurrency [test_*]
+ *  $ ./threads-concurrency [--help | test_<something> | test_<prefix> ]
  *
  * History:
  * -----------------------------------------------------------------------------
@@ -61,7 +78,7 @@ TEST_FNS Test_fns[] = {
 };
 
 // Test start / end info-msg macros
-#define TEST_START()  cout << __func__ << " "
+#define TEST_START()  cout << __func__ << "() "
 #define TEST_END()    cout << " ...OK" << endl
 #define TEST_SKIP(msg)   do { cout << "... Unsupported: " << msg << endl; return; } while(0)
 
@@ -188,6 +205,16 @@ do_count(const string tname, int ntimes, uint64_t& ret)
  * ****************************************************************************
  * Spawn 2 concurrent threads, each increment its own thread-local counter.
  * Verify the output returned by thread-handler is the expected counter value.
+ *
+ * Key Points:
+ *  - The main(), here test_thread_local() fn run by main(), is also a thread.
+ *  - When you execute a thread, you copy everything inside it. So, each thread
+ *    has its own thread-local copy of `tlocal_ctr`. To return this incremented
+ *    value from each thread to the main() [caller], we pass-in the reta / retb
+ *    variables via a std:ref reference.
+ *
+ * Results: The output value returned by each thread will have updated the
+ * local counter, but the main thread's local counter should remain uninit'ed.
  * ****************************************************************************
  */
 void
