@@ -111,6 +111,7 @@ void test_vector_size_capacity_gotcha(void);
 void test_memory_allocation();
 void test_xform_list_vector_of_squares();
 void test_xform_use_back_inserter();
+void test_remove_from_list();
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -146,6 +147,7 @@ TEST_FNS Test_fns[] = {
     , { "test_xform_list_vector_of_squares"
                                         , test_xform_list_vector_of_squares }
     , { "test_xform_use_back_inserter"  , test_xform_use_back_inserter }
+    , { "test_remove_from_list"         , test_remove_from_list }
 };
 
 // Test start / end info-msg macros
@@ -1221,6 +1223,48 @@ test_xform_use_back_inserter(void)
 
     cout << "Sorted scores  : "; prContainer(sorted_scores);
     assert(sorted_scores.size() == scores.size());
+
+    TEST_END();
+}
+
+/**
+ * Test case to show weirdness'es with std::remove() and better way to use,
+ * when available, the remove() method on the container itself.
+ */
+void
+test_remove_from_list(void)
+{
+    TEST_START();
+
+    std::list<int> l = {1, 100, 2, 1, 10, 3, 10, 1, 11, -1, 12};
+    auto l2 = l;
+    auto nitems_to_remove = 3;  // # of instances of 1 in the list.
+
+    auto l_size = l.size();
+    cout << "\nBefore remove: "; prContainer(l);
+
+    auto rem_item = 1;
+    auto new_end = std::remove(l.begin(), l.end(), rem_item);
+
+    // std::remove() returns the new end-of-the-list iterator.
+    // Figure out how many items were deleted by walking forward.
+    auto nremoved = 0;
+    while (new_end != l.end()) {
+        nremoved++;
+        new_end++;
+    }
+    // std::remove() does remove the affected items, but the list's size
+    // remains the same. So, you will see a few repeated trailing items.
+    cout << "After  removing " << nremoved << " items: "; prContainer(l);
+
+    assert(nremoved == nitems_to_remove);
+    assert(l.size() == l_size);
+
+    // The way to do this is to use remove() method for the container.
+    nremoved = l2.remove(rem_item);
+    cout << "After  removing " << nremoved << " items: "; prContainer(l2);
+
+    assert(l_size = l2.size() + nremoved);
 
     TEST_END();
 }
