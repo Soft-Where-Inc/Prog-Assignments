@@ -47,6 +47,7 @@ void test_msg(string);
 void test_UniqueIntPtr_ctor_dtor_default(void);
 void test_UniqueIntPtr_ctor_dtor_basic(void);
 void test_UniquePtr_string_ctor_dtor_basic(void);
+void test_UniquePtr_string_default_ctor_dtor(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -63,6 +64,8 @@ TEST_FNS Test_fns[] = {
     , { "test_UniqueIntPtr_ctor_dtor_basic"  , test_UniqueIntPtr_ctor_dtor_basic }
     , { "test_UniquePtr_string_ctor_dtor_basic"
                                             , test_UniquePtr_string_ctor_dtor_basic }
+    , { "test_UniquePtr_string_default_ctor_dtor"
+                                            , test_UniquePtr_string_default_ctor_dtor }
 };
 
 // Test start / end info-msg macros
@@ -114,6 +117,12 @@ class UniqueIntPtr {
 template<typename T>
 class UniquePtr {
   public:
+    // Default constructor, initializing to some default value
+    UniquePtr() {
+        val_ = nullptr;
+        cout << __LOC__ << "Default ctor\n";
+    }
+
     // Add constructor with user-specified type and value
     UniquePtr(T *newval): val_(newval) {
         cout << __LOC__ << "Execute ctor\n";
@@ -126,7 +135,12 @@ class UniquePtr {
     }
 
     // Return the value
-    T get() { return *val_; }
+    T get() {
+        if (val_ == nullptr) {
+            throw std::logic_error{__LOC__ ": Val ptr is null" };
+        }
+        return *val_;
+    }
 
   private:
     T *   val_;
@@ -279,7 +293,32 @@ test_UniqueIntPtr_ctor_dtor_basic(void)
 }
 
 /**
+ * *****************************************************************************
+ * Test UniquePtr for string type, using default-constructor for data type.
+ * *****************************************************************************
+ */
+void
+test_UniquePtr_string_default_ctor_dtor(void)
+{
+    TEST_START();
+
+    UniquePtr pString = UniquePtr<string>();
+
+    try {
+        auto value = pString.get();
+    } catch (std::logic_error& ex) {
+        cerr << __LOC__ << "Logic exception raised: " << ex.what() << endl;
+    }
+    // cout << __LOC__ << "String is: '" << value << "'" << endl;
+    // assert(value == "Hello");
+
+    TEST_END();
+}
+
+/**
+ * *****************************************************************************
  * Test UniquePtr for string type, using value-constructor.
+ * *****************************************************************************
  */
 void
 test_UniquePtr_string_ctor_dtor_basic(void)
