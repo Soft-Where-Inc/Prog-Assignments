@@ -44,6 +44,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_UniquePtr_ctor_dtor_default(void);
 void test_UniquePtr_ctor_dtor_basic(void);
 
 // -----------------------------------------------------------------------------
@@ -57,6 +58,7 @@ typedef struct test_fns
 TEST_FNS Test_fns[] = {
       { "test_this"                          , test_this }
     , { "test_that"                          , test_that }
+    , { "test_UniquePtr_ctor_dtor_default"   , test_UniquePtr_ctor_dtor_default }
     , { "test_UniquePtr_ctor_dtor_basic"     , test_UniquePtr_ctor_dtor_basic }
 };
 
@@ -78,20 +80,26 @@ TEST_FNS Test_fns[] = {
 class UniquePtr {
   public:
     // Default constructor
-    UniquePtr(int *newint): val(newint) {
+    UniquePtr() {
+        val_ = new int(0);
+        cout << __LOC__ << "Default ctor\n";
+    }
+
+    // Add constructor with user-specified value
+    UniquePtr(int *newint): val_(newint) {
         cout << __LOC__ << "Execute ctor\n";
     }
 
     // Default destructor
     ~UniquePtr() {
         cout << __LOC__ << "Invoke dtor\n";
-        delete val;
+        delete val_;
     }
 
-    int get() { return *val; }
+    int get() { return *val_; }
 
   private:
-    int *   val;
+    int *   val_;
 };
 
 /*
@@ -198,9 +206,33 @@ test_msg(string msg)
     TEST_END();
 }
 
+
 /**
- * Exercise basic usage of constructor & destructor of UniquePtr() class, and
- * check that there is no memory leak.
+ * *****************************************************************************
+ * Exercise default usage of constructor & destructor of UniquePtr() class,
+ * and check that there is no memory leak.
+ * *****************************************************************************
+ */
+void
+test_UniquePtr_ctor_dtor_default(void)
+{
+    TEST_START();
+
+    int val = 42;
+    UniquePtr intptr = UniquePtr();
+
+    cout << "intptr.val=" << intptr.get();
+
+    // Default constructor initializes value to 0; not to 'val'.
+    assert(intptr.get() == 0);
+
+    TEST_END();
+}
+/**
+ * *****************************************************************************
+ * Exercise basic usage of constructor & destructor of UniquePtr() class,
+ * and check that there is no memory leak.
+ * *****************************************************************************
  */
 void
 test_UniquePtr_ctor_dtor_basic(void)
