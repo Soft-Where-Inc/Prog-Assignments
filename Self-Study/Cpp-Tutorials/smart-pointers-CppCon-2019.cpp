@@ -40,6 +40,12 @@
 #include <iostream>
 #include <stdexcept>
 
+#if __linux__
+#include <cassert>
+#include <memory>
+#include <cstring>  // For strncmp()
+#endif // __linux__
+
 using namespace std;
 
 string Usage = " [ --help | test_<fn-name> ]\n";
