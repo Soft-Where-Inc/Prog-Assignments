@@ -15,6 +15,9 @@
  *        ./unique-pointer-impl [test_*]
  *        ././unique-pointer-impl [--help | test_<something> | test_<prefix> ]
  *
+ * Mac, to detect memory leaks, run:
+ *  $ leaks -atExit -- ./unique-pointer-impl <test-case-name>
+ *
  * NOTES:
  * - Languages like Java, Python have built-in Garbage collectors, which causes
  *   performance overhead. In C++, if you use NEW(), you -must- do a DELETE()
@@ -52,6 +55,7 @@ void test_UniquePtr_string_ctor_dtor_basic(void);
 void test_UniquePtr_string_default_ctor_dtor(void);
 void test_UniquePtr_string_copy_ctor(void);
 void test_UniquePtr_string_move_assignment(void);
+void test_star_operator(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -73,6 +77,7 @@ TEST_FNS Test_fns[] = {
     , { "test_UniquePtr_string_copy_ctor"   , test_UniquePtr_string_copy_ctor }
     , { "test_UniquePtr_string_move_assignment"
                                             , test_UniquePtr_string_move_assignment }
+    , { "test_star_operator"                , test_star_operator }
 };
 
 // Test start / end info-msg macros
@@ -157,11 +162,15 @@ class UniquePtr {
         return *this;
     }
 
+    // Dereference pointer to print the value
+    T operator *() { return *val_; }
+
     // Default destructor
     ~UniquePtr() {
         if (val_) {
             cout << __LOC__ << "Invoke dtor, this: " << this << "\n";
             delete val_;
+            val_ = nullptr;
         }
     }
 
@@ -411,6 +420,18 @@ test_UniquePtr_string_move_assignment(void)
 
     cout << "pString2: '" << pString2.data();
     assert(pString.get() == nullptr);
+
+    TEST_END();
+}
+
+void
+test_star_operator(void)
+{
+    TEST_START();
+
+    UniquePtr<string> pString = UniquePtr(new string("Exercise * operator"));
+
+    cout << *pString;
 
     TEST_END();
 }
