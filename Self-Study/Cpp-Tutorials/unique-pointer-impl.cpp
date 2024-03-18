@@ -56,6 +56,7 @@ void test_UniquePtr_string_default_ctor_dtor(void);
 void test_UniquePtr_string_copy_ctor(void);
 void test_UniquePtr_string_move_assignment(void);
 void test_star_operator(void);
+void test_arrow_operator(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -78,6 +79,7 @@ TEST_FNS Test_fns[] = {
     , { "test_UniquePtr_string_move_assignment"
                                             , test_UniquePtr_string_move_assignment }
     , { "test_star_operator"                , test_star_operator }
+    , { "test_arrow_operator"               , test_arrow_operator }
 };
 
 // Test start / end info-msg macros
@@ -140,7 +142,7 @@ class UniquePtr {
     UniquePtr(T *newval = nullptr): val_(newval) {
         cout << __LOC__ << "Execute "
              << ((val_ == nullptr) ? "default " : "")
-             << "ctor, this: " << this << "\n";
+             << "ctor, this: " << this << " ";
     }
 
     // Copy constructor: Need to relinquish ownership from src - undefined
@@ -164,6 +166,17 @@ class UniquePtr {
 
     // Dereference pointer to print the value
     T operator *() { return *val_; }
+
+    // UniquePtr<T> operator->() { return this; }
+    auto operator->() { return this; }
+
+    void print() {
+        if (val_) {
+            std::cout << *val_;
+        } else {
+            std::cout << "<null>";
+        }
+    }
 
     // Default destructor
     ~UniquePtr() {
@@ -429,9 +442,21 @@ test_star_operator(void)
 {
     TEST_START();
 
-    UniquePtr<string> pString = UniquePtr(new string("Exercise * operator"));
+    UniquePtr<string> pString = UniquePtr(new string("'Exercise * operator'"));
 
     cout << *pString;
+
+    TEST_END();
+}
+
+void
+test_arrow_operator(void)
+{
+    TEST_START();
+
+    UniquePtr<string> pString = UniquePtr(new string("'Exercise -> operator'"));
+
+    pString->print();
 
     TEST_END();
 }
