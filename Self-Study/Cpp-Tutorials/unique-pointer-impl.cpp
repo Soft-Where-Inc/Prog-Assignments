@@ -117,15 +117,11 @@ class UniqueIntPtr {
 template<typename T>
 class UniquePtr {
   public:
-    // Default constructor, initializing to some default value
-    UniquePtr() {
-        val_ = nullptr;
-        cout << __LOC__ << "Default ctor\n";
-    }
-
+    // Default constructor, initializing to nullptr as default value
     // Add constructor with user-specified type and value
-    UniquePtr(T *newval): val_(newval) {
-        cout << __LOC__ << "Execute ctor\n";
+    UniquePtr(T *newval = nullptr): val_(newval) {
+        cout << __LOC__ << "Execute "
+             << ((val_ == nullptr) ? "default " : "") << "ctor\n";
     }
 
     // Default destructor
@@ -309,8 +305,6 @@ test_UniquePtr_string_default_ctor_dtor(void)
     } catch (std::logic_error& ex) {
         cerr << __LOC__ << "Logic exception raised: " << ex.what() << endl;
     }
-    // cout << __LOC__ << "String is: '" << value << "'" << endl;
-    // assert(value == "Hello");
 
     TEST_END();
 }
