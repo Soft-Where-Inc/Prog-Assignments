@@ -13,6 +13,17 @@
  *        ./unique-pointer-impl [test_*]
  *        ././unique-pointer-impl [--help | test_<something> | test_<prefix> ]
  *
+ * NOTES:
+ * - Languages like Java, Python have built-in Garbage collectors, which causes
+ *   performance overhead. In C++, if you use NEW(), you -must- do a DELETE()
+ *   otherwise, it will cause a memory leak. NEW() allocates memory from the
+ *   heap, similar to C-style malloc().
+ *
+ * - SMART pointers are a way to simplify the code so as a programmer you do
+ *   not need to worry about a DELETE. Once the smart ptr goes out of scope
+ *   C++ constructs will automatically invoke DELETE behind-the-scenes,
+ *   avoiding a memory leak.
+ *
  * History:
  * -----------------------------------------------------------------------------
  */
@@ -33,6 +44,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_UniquePtr_ctor_dtor_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -43,9 +55,10 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-                          { "test_this"     , test_this }
-                        , { "test_that"     , test_that }
-                      };
+      { "test_this"                          , test_this }
+    , { "test_that"                          , test_that }
+    , { "test_UniquePtr_ctor_dtor_basic"     , test_UniquePtr_ctor_dtor_basic }
+};
 
 // Test start / end info-msg macros
 #define TEST_START()  cout << __func__ << "() "
@@ -55,6 +68,31 @@ TEST_FNS Test_fns[] = {
 // Fabricate a string to track code-location of call-site.
 #define __LOC__ \
     "[" + std::string{__func__} + "():" + std::to_string(__LINE__) + "] "
+
+/*
+ * *****************************************************************************
+ * Definition of Class UniquePtr(), which is identical to unique_ptr(), but
+ * implemented just for basic int type.
+ * *****************************************************************************
+ */
+class UniquePtr {
+  public:
+    // Default constructor
+    UniquePtr(int *newint): val(newint) {
+        cout << __LOC__ << "Execute ctor\n";
+    }
+
+    // Default destructor
+    ~UniquePtr() {
+        cout << __LOC__ << "Invoke dtor\n";
+        delete val;
+    }
+
+    int get() { return *val; }
+
+  private:
+    int *   val;
+};
 
 /*
  * *****************************************************************************
@@ -157,6 +195,24 @@ test_msg(string msg)
     TEST_START();
     cout << msg;
     ends_with(msg, "Hello World.");
+    TEST_END();
+}
+
+/**
+ * Exercise basic usage of constructor & destructor of UniquePtr() class, and
+ * check that there is no memory leak.
+ */
+void
+test_UniquePtr_ctor_dtor_basic(void)
+{
+    TEST_START();
+
+    int val = 42;
+    UniquePtr intptr = UniquePtr(new int(val));
+
+    cout << "intptr.val=" << intptr.get();
+    assert(intptr.get() == val);
+
     TEST_END();
 }
 
