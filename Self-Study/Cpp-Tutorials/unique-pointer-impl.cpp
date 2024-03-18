@@ -46,6 +46,7 @@ void test_that(void);
 void test_msg(string);
 void test_UniqueIntPtr_ctor_dtor_default(void);
 void test_UniqueIntPtr_ctor_dtor_basic(void);
+void test_UniquePtr_string_ctor_dtor_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -60,6 +61,8 @@ TEST_FNS Test_fns[] = {
     , { "test_that"                          , test_that }
     , { "test_UniqueIntPtr_ctor_dtor_default", test_UniqueIntPtr_ctor_dtor_default }
     , { "test_UniqueIntPtr_ctor_dtor_basic"  , test_UniqueIntPtr_ctor_dtor_basic }
+    , { "test_UniquePtr_string_ctor_dtor_basic"
+                                            , test_UniquePtr_string_ctor_dtor_basic }
 };
 
 // Test start / end info-msg macros
@@ -100,6 +103,33 @@ class UniqueIntPtr {
 
   private:
     int *   val_;
+};
+
+/*
+ * *****************************************************************************
+ * Definition of generic Class UniquePtr(), which is identical to unique_ptr(),
+ * implemented for generic types using templates.
+ * *****************************************************************************
+ */
+template<typename T>
+class UniquePtr {
+  public:
+    // Add constructor with user-specified type and value
+    UniquePtr(T *newval): val_(newval) {
+        cout << __LOC__ << "Execute ctor\n";
+    }
+
+    // Default destructor
+    ~UniquePtr() {
+        cout << __LOC__ << "Invoke dtor\n";
+        delete val_;
+    }
+
+    // Return the value
+    T get() { return *val_; }
+
+  private:
+    T *   val_;
 };
 
 /*
@@ -244,6 +274,23 @@ test_UniqueIntPtr_ctor_dtor_basic(void)
 
     cout << "intptr.val=" << intptr.get();
     assert(intptr.get() == val);
+
+    TEST_END();
+}
+
+/**
+ * Test UniquePtr for string type, using value-constructor.
+ */
+void
+test_UniquePtr_string_ctor_dtor_basic(void)
+{
+    TEST_START();
+
+    UniquePtr pString = UniquePtr(new string("Hello"));
+
+    auto value = pString.get();
+    cout << __LOC__ << "String is: '" << value << "'" << endl;
+    assert(value == "Hello");
 
     TEST_END();
 }
