@@ -61,6 +61,7 @@ void test_that(void);
 void test_msg(string);
 void test_threads_basic(void);
 void test_thread_local(void);
+void test_thread_local_incorrect_usage(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -75,6 +76,8 @@ TEST_FNS Test_fns[] = {
     , { "test_that"                 , test_that }
     , { "test_threads_basic"        , test_threads_basic }
     , { "test_thread_local"         , test_thread_local }
+    , { "test_thread_local_incorrect_usage"
+                                    , test_thread_local_incorrect_usage }
 };
 
 // Test start / end info-msg macros
@@ -239,13 +242,85 @@ test_thread_local(void)
     tb.join();
 
     fmt::print("reta={}, retb={}, main tlocal_ctr={}\n", reta, retb, tlocal_ctr);
-    
+
     // Verify test results
     assert(reta == ntimes_a);   // each thread's local counter should have
     assert(retb == ntimes_b);   // been incremented
 
     // Main thread's counter should have remained unchanged at its initial value.
     assert(tlocal_ctr == tlocal_ctr_initial);
+
+    TEST_END();
+}
+
+/**
+ * Example of an incorrect usage of thread-local variables inside a
+ * thread handler function.
+ * Define a thread-function handler to increment this thread-local counter
+ * Return the final value via an output reference parameter
+ */
+void
+do_count_incorrect(const string tname, int ntimes, uint64_t& ret,
+                   uint64_t *local_ctr)
+{
+    // Increment thread-local counter ntimes
+    for (auto i = 0; i < ntimes; i++) {
+        (*local_ctr)++;
+    }
+    fmt::print("Excuted ThreadID='{}', new tlocal_ctr={}\n", tname, tlocal_ctr);
+
+    // Return final value of thread-local counter for this thread
+    ret = *local_ctr;
+}
+
+/**
+ * ****************************************************************************
+ * Spawn 2 concurrent threads, each increment its own thread-local counter.
+ * Verify the output returned by thread-handler is the expected counter value.
+ *
+ * Key Points:
+ *  - The main(), here test_thread_local() fn run by main(), is also a thread.
+ *  - This test shows an example of an incorrect usage of passing in by addr
+ *    the main() thread's tlocal_ctr variable. This is simply wrong as each
+ *    thread will no longer increment its _own_ thread-local counter.
+ *
+ * Results: The output value returned by each thread will have updated the
+ * the main thread's local counter rather than each thread's local-counter.
+ * ****************************************************************************
+ */
+void
+test_thread_local_incorrect_usage(void)
+{
+    TEST_START();
+
+    cout << endl;
+
+    uint64_t    reta{};
+    uint64_t    retb{};
+
+    // Start two threads, invoking the common incrementer function, returning
+    // the final result of incremented thread-local counter via output param
+    auto ntimes_a = 10;
+    std::thread ta(do_count_incorrect,
+                   "tA-ntimes=10", 10, std::ref(reta), &tlocal_ctr);
+
+    auto ntimes_b = 20;
+    std::thread tb(do_count_incorrect,
+                   "tB-ntimes=20", 20, std::ref(retb), &tlocal_ctr);
+
+    tb.join();
+    ta.join();
+
+    fmt::print("reta={}, retb={}, main tlocal_ctr={}\n", reta, retb, tlocal_ctr);
+
+    // Verify results of incorrect usage of main() thread's tlocal_ctr
+    // Each thread's local counter would have been incremented differently,
+    // You cannot assert on anything due to timing races ...
+    // assert(reta == retb);
+    assert((reta == (ntimes_a + ntimes_b)) || (retb == (ntimes_a + ntimes_b)));
+
+    // Main thread's counter should have remained unchanged at its initial value.
+    assert(tlocal_ctr != tlocal_ctr_initial);
 
     TEST_END();
 }
