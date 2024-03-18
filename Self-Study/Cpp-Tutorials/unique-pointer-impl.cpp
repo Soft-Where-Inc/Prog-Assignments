@@ -6,6 +6,8 @@
  *  [1] Smart Pointers Explained with Code Implementation
  *      https://www.youtube.com/watch?v=gGL_Q0TpukY&t=1679s
  *
+ *  [2] A Tour of C++, 2nd Edition, Bjarne Stoustrup.
+ *
  * This is an excellent step-by-step tutorial on how-to build a unique_ptr
  * class from the basics, adding different types of constructors.
  *
@@ -48,6 +50,7 @@ void test_UniqueIntPtr_ctor_dtor_default(void);
 void test_UniqueIntPtr_ctor_dtor_basic(void);
 void test_UniquePtr_string_ctor_dtor_basic(void);
 void test_UniquePtr_string_default_ctor_dtor(void);
+void test_UniquePtr_string_copy_ctor(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -66,6 +69,7 @@ TEST_FNS Test_fns[] = {
                                             , test_UniquePtr_string_ctor_dtor_basic }
     , { "test_UniquePtr_string_default_ctor_dtor"
                                             , test_UniquePtr_string_default_ctor_dtor }
+    , { "test_UniquePtr_string_copy_ctor"   , test_UniquePtr_string_copy_ctor }
 };
 
 // Test start / end info-msg macros
@@ -81,6 +85,9 @@ TEST_FNS Test_fns[] = {
  * *****************************************************************************
  * Definition of Class UniqueIntPtr(), which is identical to unique_ptr(), but
  * implemented just for basic int type.
+ *
+ * Class is a "resource handle" as it is managing an object for which memory
+ * is allocated and the object is accessed through a pointer. [2] Sec. 5.2.1
  * *****************************************************************************
  */
 class UniqueIntPtr {
@@ -112,6 +119,9 @@ class UniqueIntPtr {
  * *****************************************************************************
  * Definition of generic Class UniquePtr(), which is identical to unique_ptr(),
  * implemented for generic types using templates.
+ *
+ * Class is a "resource handle" as it is managing an object for which memory
+ * is allocated and the object is accessed through a pointer. [2] Sec. 5.2.1
  * *****************************************************************************
  */
 template<typename T>
@@ -124,10 +134,18 @@ class UniquePtr {
              << ((val_ == nullptr) ? "default " : "") << "ctor\n";
     }
 
+    // Copy constructor: Need to relinquish ownership from src - undefined
+    UniquePtr(const UniquePtr<T>& src) = delete;
+
+    // Copy assignment: Need to relinquish ownership from src - undefined
+    UniquePtr& operator=(const UniquePtr<T>& src) = delete;
+
     // Default destructor
     ~UniquePtr() {
-        cout << __LOC__ << "Invoke dtor\n";
-        delete val_;
+        if (val_) {
+            cout << __LOC__ << "Invoke dtor\n";
+            delete val_;
+        }
     }
 
     // Return the value
@@ -322,8 +340,32 @@ test_UniquePtr_string_ctor_dtor_basic(void)
     UniquePtr pString = UniquePtr(new string("Hello"));
 
     auto value = pString.data();
-    cout << __LOC__ << "String is: '" << value << "'" << endl;
+    cout << __LOC__ << "String is: '" << value << "'";
     assert(value == "Hello");
+
+    TEST_END();
+}
+
+/**
+ * *****************************************************************************
+ * Test UniquePtr for string type, using copy-constructor.
+ * *****************************************************************************
+ */
+void
+test_UniquePtr_string_copy_ctor(void)
+{
+    TEST_START();
+
+    UniquePtr pString = UniquePtr(new string("COPY constructor unsupported!"));
+
+    // COPY-constructor is unsupported for this class as the semantics of COPY
+    // followed by relinquishing ownership from 'src' is undefined.
+    // This will raise a compilation error.
+    // UniquePtr pString2 = UniquePtr(pString);
+
+    // UniquePtr pString2 = pString;
+
+    cout << pString.data();
 
     TEST_END();
 }
