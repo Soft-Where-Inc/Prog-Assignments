@@ -51,6 +51,7 @@ void test_UniqueIntPtr_ctor_dtor_basic(void);
 void test_UniquePtr_string_ctor_dtor_basic(void);
 void test_UniquePtr_string_default_ctor_dtor(void);
 void test_UniquePtr_string_copy_ctor(void);
+void test_UniquePtr_string_move_assignment(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -70,6 +71,8 @@ TEST_FNS Test_fns[] = {
     , { "test_UniquePtr_string_default_ctor_dtor"
                                             , test_UniquePtr_string_default_ctor_dtor }
     , { "test_UniquePtr_string_copy_ctor"   , test_UniquePtr_string_copy_ctor }
+    , { "test_UniquePtr_string_move_assignment"
+                                            , test_UniquePtr_string_move_assignment }
 };
 
 // Test start / end info-msg macros
@@ -131,7 +134,8 @@ class UniquePtr {
     // Add constructor with user-specified type and value
     UniquePtr(T *newval = nullptr): val_(newval) {
         cout << __LOC__ << "Execute "
-             << ((val_ == nullptr) ? "default " : "") << "ctor\n";
+             << ((val_ == nullptr) ? "default " : "")
+             << "ctor, this: " << this << "\n";
     }
 
     // Copy constructor: Need to relinquish ownership from src - undefined
@@ -140,13 +144,29 @@ class UniquePtr {
     // Copy assignment: Need to relinquish ownership from src - undefined
     UniquePtr& operator=(const UniquePtr<T>& src) = delete;
 
+    // MOVE assignment: DELETE 'src' memory after move-assignment to dest.
+    UniquePtr& operator=(UniquePtr<T>&& src) {
+        if (this != &src) {
+            // Deallocate existing memory, if it exists, from this dst
+            if (val_) {
+                delete val_;
+            }
+            val_ = src.val_;
+            src.val_ = nullptr;
+        }
+        return *this;
+    }
+
     // Default destructor
     ~UniquePtr() {
         if (val_) {
-            cout << __LOC__ << "Invoke dtor\n";
+            cout << __LOC__ << "Invoke dtor, this: " << this << "\n";
             delete val_;
         }
     }
+
+    // Return the ptr itself
+    T * get() { return val_; }
 
     // Return the value
     T data() {
@@ -366,6 +386,31 @@ test_UniquePtr_string_copy_ctor(void)
     // UniquePtr pString2 = pString;
 
     cout << pString.data();
+
+    TEST_END();
+}
+
+/**
+ * *****************************************************************************
+ * Test UniquePtr for string type, using move-assignment.
+ * *****************************************************************************
+ */
+void
+test_UniquePtr_string_move_assignment(void)
+{
+    TEST_START();
+
+    UniquePtr<string> pString = UniquePtr(new string("MOVE assignment!"));
+
+    // This will also give a compilation error.
+    // UniquePtr p2String = pString;
+
+    // The correct way to do this is to use std::move()
+    UniquePtr<string> pString2 = UniquePtr<string>();
+    pString2 = std::move(pString);
+
+    cout << "pString2: '" << pString2.data();
+    assert(pString.get() == nullptr);
 
     TEST_END();
 }
