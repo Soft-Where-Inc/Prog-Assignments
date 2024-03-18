@@ -57,6 +57,7 @@ void test_UniquePtr_string_copy_ctor(void);
 void test_UniquePtr_string_move_assignment(void);
 void test_star_operator(void);
 void test_arrow_operator(void);
+void test_reset(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -80,6 +81,7 @@ TEST_FNS Test_fns[] = {
                                             , test_UniquePtr_string_move_assignment }
     , { "test_star_operator"                , test_star_operator }
     , { "test_arrow_operator"               , test_arrow_operator }
+    , { "test_reset"                        , test_reset }
 };
 
 // Test start / end info-msg macros
@@ -169,6 +171,14 @@ class UniquePtr {
 
     // UniquePtr<T> operator->() { return this; }
     auto operator->() { return this; }
+
+    // Reset takes a ptr to a Type that this UniquePtr points to.
+    void reset(T* newval = nullptr) {
+        if (val_) {
+            delete val_;
+        }
+        val_ = newval;
+    }
 
     void print() {
         if (val_) {
@@ -457,6 +467,25 @@ test_arrow_operator(void)
     UniquePtr<string> pString = UniquePtr(new string("'Exercise -> operator'"));
 
     pString->print();
+
+    TEST_END();
+}
+
+void
+test_reset(void)
+{
+    TEST_START();
+
+    UniquePtr<string> pString = UniquePtr(new string("New Value"));
+
+    cout << "'" << *pString << "', reset to ...";
+
+    string oldvalue = "Reset to Old Value";
+    pString.reset(new string(oldvalue));
+
+    cout << "'" << *pString << "'";
+
+    assert(*pString == oldvalue);
 
     TEST_END();
 }
