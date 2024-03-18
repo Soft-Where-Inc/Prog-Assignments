@@ -11,6 +11,7 @@
  *  [1] C++ Memory Model: from C++11 to C++23 - Alex Dathskovsky - CppCon 2023
  *      https://www.youtube.com/watch?v=SVEYNEWZLo4 ; Starting ~29m.10s
  *
+ * RESOLVE: Stopped at std::thread ~36m 12s; finish the remaining exercises.
  * Pre-requisites:
  *  - {fmt} printing library: https://fmt.dev/latest/index.html
  *
@@ -78,6 +79,7 @@ TEST_FNS Test_fns[] = {
     , { "test_thread_local"         , test_thread_local }
     , { "test_thread_local_incorrect_usage"
                                     , test_thread_local_incorrect_usage }
+    , { "test_atomics"              , test_atomics }
 };
 
 // Test start / end info-msg macros
@@ -321,6 +323,32 @@ test_thread_local_incorrect_usage(void)
 
     // Main thread's counter should have remained unchanged at its initial value.
     assert(tlocal_ctr != tlocal_ctr_initial);
+
+    TEST_END();
+}
+
+/**
+ * ****************************************************************************
+ * Exercise use of std::atomic, which standard provides.
+ * Previously, one had to use assembly (asm) or intrinsics, memory barriers
+ * and so on, to implement concurrency control. All this is now subsumed
+ * into the standard and simplified by std::atomic interface.
+ *
+ * Provides portable way to perform low-level atomic operations.
+ * - No torn reads or torn writes for primitives
+ * - Provides read-acquire, write-release and full memory barriers.
+ *
+ * Ref:
+ *  https://en.cppreference.com/w/cpp/atomic/memory_order
+ *
+ * Lots of sample programs with different std::atomic enum-type usages,
+ * all of which are complicated and need painstaking line-by-line review.
+ * ****************************************************************************
+ */
+void
+test_atomics(void)
+{
+    TEST_START();
 
     TEST_END();
 }
