@@ -43,9 +43,13 @@ TEST_FNS Test_fns[] = {
                       };
 
 // Test start / end info-msg macros
-#define TEST_START()  cout << __func__ << " "
+#define TEST_START()  cout << __func__ << "() "
 #define TEST_END()    cout << " ...OK" << endl
 #define TEST_SKIP(msg)   do { cout << "... Unsupported: " << msg << endl; return; } while(0)
+
+// Fabricate a string to track code-location of call-site.
+#define __LOC__ \
+    "[" + std::string{__func__} + "():" + std::to_string(__LINE__) + "] "
 
 /*
  * *****************************************************************************
@@ -89,6 +93,33 @@ main(const int argc, const char *argv[])
     return rv;
 }
 
+// **** Helper methods ****
+/**
+ * ends_with() : Similar to Python's str.endswith(substr)
+ *
+ * - Do length-check first. Fail if it does not satisfy.
+ * - Then, do an interesting use of "reverse-iterator" rbegin(), rend().
+ *
+ *                        ┌──str.rbegin()
+ *                        ▼
+ *    str ──►[ ...... a b c ]
+ *        substr ───►[a b c ]
+ *                  ▲     ▲
+ * substr.rend()────┘     └──substr.rbegin()
+ *
+ * Ref: https://stackoverflow.com/questions/874134/find-out-if-string-ends-with-another-string-in-c
+*/
+inline bool ends_with(std::string const & str, std::string const & substr)
+{
+    if (substr.size() > str.size()) {
+        return false;
+    }
+    // Walk backwards, using reverse iterators, from the end of the substr,
+    // rbegin(), matching till just-prior-to-its begin-char, rend(), comparing
+    // from the last-char of the input string 'str'.
+    return std::equal(substr.rbegin(), substr.rend(), str.rbegin());
+}
+
 // **** Test cases ****
 
 void
@@ -104,7 +135,14 @@ void
 test_that(void)
 {
     TEST_START();
-    test_msg("Hello World.");
+
+    // Exercise this helper method for base cases
+    string substr = "Hello World.";
+    assert(ends_with("Hello",        substr) == false);
+    assert(ends_with("Hello World",  substr) == false);
+    assert(ends_with("Hello World.", substr) == true);
+
+    test_msg(__LOC__ + "Hello World.");
     TEST_END();
 }
 
@@ -112,7 +150,9 @@ void
 test_msg(string msg)
 {
     TEST_START();
-    assert(msg == "Hello World.");
+    cout << msg;
+    ends_with(msg, "Hello World.");
+    TEST_END();
 }
 
 void
