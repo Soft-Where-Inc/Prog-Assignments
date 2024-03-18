@@ -44,8 +44,8 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
-void test_UniquePtr_ctor_dtor_default(void);
-void test_UniquePtr_ctor_dtor_basic(void);
+void test_UniqueIntPtr_ctor_dtor_default(void);
+void test_UniqueIntPtr_ctor_dtor_basic(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -58,8 +58,8 @@ typedef struct test_fns
 TEST_FNS Test_fns[] = {
       { "test_this"                          , test_this }
     , { "test_that"                          , test_that }
-    , { "test_UniquePtr_ctor_dtor_default"   , test_UniquePtr_ctor_dtor_default }
-    , { "test_UniquePtr_ctor_dtor_basic"     , test_UniquePtr_ctor_dtor_basic }
+    , { "test_UniqueIntPtr_ctor_dtor_default", test_UniqueIntPtr_ctor_dtor_default }
+    , { "test_UniqueIntPtr_ctor_dtor_basic"  , test_UniqueIntPtr_ctor_dtor_basic }
 };
 
 // Test start / end info-msg macros
@@ -73,25 +73,25 @@ TEST_FNS Test_fns[] = {
 
 /*
  * *****************************************************************************
- * Definition of Class UniquePtr(), which is identical to unique_ptr(), but
+ * Definition of Class UniqueIntPtr(), which is identical to unique_ptr(), but
  * implemented just for basic int type.
  * *****************************************************************************
  */
-class UniquePtr {
+class UniqueIntPtr {
   public:
     // Default constructor
-    UniquePtr() {
+    UniqueIntPtr() {
         val_ = new int(0);
         cout << __LOC__ << "Default ctor\n";
     }
 
     // Add constructor with user-specified value
-    UniquePtr(int *newint): val_(newint) {
+    UniqueIntPtr(int *newint): val_(newint) {
         cout << __LOC__ << "Execute ctor\n";
     }
 
     // Default destructor
-    ~UniquePtr() {
+    ~UniqueIntPtr() {
         cout << __LOC__ << "Invoke dtor\n";
         delete val_;
     }
@@ -209,17 +209,17 @@ test_msg(string msg)
 
 /**
  * *****************************************************************************
- * Exercise default usage of constructor & destructor of UniquePtr() class,
+ * Exercise default usage of constructor & destructor of UniqueIntPtr() class,
  * and check that there is no memory leak.
  * *****************************************************************************
  */
 void
-test_UniquePtr_ctor_dtor_default(void)
+test_UniqueIntPtr_ctor_dtor_default(void)
 {
     TEST_START();
 
     int val = 42;
-    UniquePtr intptr = UniquePtr();
+    UniqueIntPtr intptr = UniqueIntPtr();
 
     cout << "intptr.val=" << intptr.get();
 
@@ -230,17 +230,17 @@ test_UniquePtr_ctor_dtor_default(void)
 }
 /**
  * *****************************************************************************
- * Exercise basic usage of constructor & destructor of UniquePtr() class,
+ * Exercise basic usage of constructor & destructor of UniqueIntPtr() class,
  * and check that there is no memory leak.
  * *****************************************************************************
  */
 void
-test_UniquePtr_ctor_dtor_basic(void)
+test_UniqueIntPtr_ctor_dtor_basic(void)
 {
     TEST_START();
 
     int val = 42;
-    UniquePtr intptr = UniquePtr(new int(val));
+    UniqueIntPtr intptr = UniqueIntPtr(new int(val));
 
     cout << "intptr.val=" << intptr.get();
     assert(intptr.get() == val);
