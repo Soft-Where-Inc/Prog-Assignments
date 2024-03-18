@@ -102,7 +102,7 @@ class UniqueIntPtr {
         delete val_;
     }
 
-    int get() { return *val_; }
+    int data() { return *val_; }
 
   private:
     int *   val_;
@@ -131,7 +131,7 @@ class UniquePtr {
     }
 
     // Return the value
-    T get() {
+    T data() {
         if (val_ == nullptr) {
             throw std::logic_error{__LOC__ ": Val ptr is null" };
         }
@@ -261,10 +261,10 @@ test_UniqueIntPtr_ctor_dtor_default(void)
     int val = 42;
     UniqueIntPtr intptr = UniqueIntPtr();
 
-    cout << "intptr.val=" << intptr.get();
+    cout << "intptr.val=" << intptr.data();
 
     // Default constructor initializes value to 0; not to 'val'.
-    assert(intptr.get() == 0);
+    assert(intptr.data() == 0);
 
     TEST_END();
 }
@@ -282,8 +282,8 @@ test_UniqueIntPtr_ctor_dtor_basic(void)
     int val = 42;
     UniqueIntPtr intptr = UniqueIntPtr(new int(val));
 
-    cout << "intptr.val=" << intptr.get();
-    assert(intptr.get() == val);
+    cout << "intptr.val=" << intptr.data();
+    assert(intptr.data() == val);
 
     TEST_END();
 }
@@ -301,7 +301,7 @@ test_UniquePtr_string_default_ctor_dtor(void)
     UniquePtr pString = UniquePtr<string>();
 
     try {
-        auto value = pString.get();
+        auto value = pString.data();
     } catch (std::logic_error& ex) {
         cerr << __LOC__ << "Logic exception raised: " << ex.what() << endl;
     }
@@ -321,7 +321,7 @@ test_UniquePtr_string_ctor_dtor_basic(void)
 
     UniquePtr pString = UniquePtr(new string("Hello"));
 
-    auto value = pString.get();
+    auto value = pString.data();
     cout << __LOC__ << "String is: '" << value << "'" << endl;
     assert(value == "Hello");
 
