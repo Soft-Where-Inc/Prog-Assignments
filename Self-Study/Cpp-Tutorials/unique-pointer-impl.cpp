@@ -1,6 +1,6 @@
 /*
  * -----------------------------------------------------------------------------
- * unique-pointer-impl.cpp: Implement UNIQUE_PTR from scratch.
+ * unique-pointer-impl.cpp: Implement UNIQUE_PTR from scratch. [ Completed ]
  *
  * Ref:
  *  [1] Smart Pointers Explained with Code Implementation
