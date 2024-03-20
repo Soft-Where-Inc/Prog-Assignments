@@ -17,6 +17,7 @@
 #include <iostream>
 #include <fmt/core.h>
 #include <thread>
+#include <future>
 
 #if __linux__
 #include <cstring>
@@ -34,6 +35,7 @@ void test_this(void);
 void test_that(void);
 void test_msg(string);
 void test_factorial_thread(void);
+void test_factorial_async(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -47,6 +49,7 @@ TEST_FNS Test_fns[] = {
       { "test_this"                 , test_this }
     , { "test_that"                 , test_that }
     , { "test_factorial_thread"     , test_factorial_thread }
+    , { "test_factorial_async"      , test_factorial_async }
 
 };
 
@@ -142,6 +145,24 @@ void factorial(int n) {
     fmt::print(" Factorial {}! = {} ", n, res);
 }
 
+/**
+ * Definition of n! factorial(n), which will be executed as an async function.
+ * Returns n!
+ */
+int factorial_async_fn(int n) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "ThreadID=" << this_id;
+    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+    return res;
+}
+
 // **** Test cases ****
 
 void
@@ -177,7 +198,7 @@ test_msg(string msg)
     TEST_END();
 }
 
-/* Exercise factorial() function executed by a thread. */
+/* Exercise factorial() function executed by a class thread. */
 void
 test_factorial_thread(void)
 {
@@ -187,6 +208,38 @@ test_factorial_thread(void)
 
     t1.join();
 
+    TEST_END();
+}
+
+/* Exercise factorial() function executed by an async function */
+void
+test_factorial_async(void)
+{
+    TEST_START();
+
+    int n{5};
+
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "Main ThreadID=" << this_id << " ";
+
+    // Async function returns -very-important-thing: A Future!
+    // async() method returns a FUTURE OBJECT!
+    std::future<int> fu_res = std::async(factorial_async_fn, n);
+
+    // Print messages to show that async-fn is being executed and sleeping ...
+    fmt::print("{} Factorial {}! = ... ", __LOC__, n);
+    std::cout << std::flush;
+
+    // ------------------------------------------------------------------------
+    // You can execute the function and get the result using .get() method
+    // FUTURE is a "channel" to get result from child thread executing 'async'
+    // fn. fu_res.get() will wait till child thread finishes and will receive
+    // the result returned by the child thread.
+    // ------------------------------------------------------------------------
+    // NOTE: You can call .get() -ONLY-ONCE- to draw results!
+    auto res = fu_res.get();
+
+    fmt::print(" is {} ", res);
     TEST_END();
 }
 
