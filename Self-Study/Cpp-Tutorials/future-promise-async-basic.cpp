@@ -37,6 +37,7 @@ void test_msg(string);
 void test_factorial_thread(void);
 void test_factorial_async(void);
 void test_factorial_deferred(void);
+void test_factorial_default_async(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -52,6 +53,8 @@ TEST_FNS Test_fns[] = {
     , { "test_factorial_thread"     , test_factorial_thread }
     , { "test_factorial_async"      , test_factorial_async }
     , { "test_factorial_deferred"   , test_factorial_deferred }
+    , { "test_factorial_default_async"
+                                    , test_factorial_default_async }
 
 };
 
@@ -190,6 +193,36 @@ int factorial_deferred_fn(int n, std::thread::id caller_tid) {
     return res;
 }
 
+/**
+ * Definition of n! factorial(n), which will be executed as an async function,
+ * using default invocation interface:
+ *  (std::launch::deferred | std::launch::async)
+ *
+ * It's implementation dependent whether a new async-thread will be created.
+ * On Linux-VM g++, seems like this creates an async thread, by default.
+ *.
+ * Returns n!
+ */
+int factorial_default_async(int n, std::thread::id caller_tid) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+
+    // Confirm that caller -did- invoke using the interface which is:
+    //  (std::launch::deferred | std::launch::async). On Linux g++, seems like
+    // this will create a new async thread.
+    assert(caller_tid != this_id);
+
+    cout << "ThreadID=" << this_id;
+    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+    return res;
+}
+
 // **** Test cases ****
 
 void
@@ -249,6 +282,10 @@ test_factorial_async(void)
     std::thread::id this_id = std::this_thread::get_id();
     cout << "Main ThreadID=" << this_id << " ";
 
+    // The conventional way of calling this is:
+    // std::future<int> fu_res = std::async(std::launch::async, factorial_async_fn, n);
+    // ... which is equivalent to the one below ...
+    //
     // Async function returns -very-important-thing: A Future!
     // async() method returns a FUTURE OBJECT!
     std::future<int> fu_res = std::async(factorial_async_fn, n);
@@ -289,6 +326,48 @@ test_factorial_deferred(void)
     // async() method returns a FUTURE OBJECT!
     std::future<int> fu_res = std::async(std::launch::deferred,
                                          factorial_deferred_fn, n, this_id);
+
+    // Print messages to show that async-fn is being executed and sleeping ...
+    fmt::print("{} Factorial {}! = ... ", __LOC__, n);
+    std::cout << std::flush;
+
+    // ------------------------------------------------------------------------
+    // You can execute the function and get the result using .get() method
+    // FUTURE is a "channel" to get result from child thread executing 'async'
+    // fn. fu_res.get() will wait till child thread finishes and will receive
+    // the result returned by the child thread.
+    // ------------------------------------------------------------------------
+    // NOTE: You can call .get() -ONLY-ONCE- to draw results!
+    auto res = 0;
+    res = fu_res.get();
+
+    fmt::print(" is {} ", res);
+    TEST_END();
+}
+
+/**
+ * Exercise factorial() function executed by deferred execution using the default
+ * interface to invoke as async-function.
+ *
+ * Deferred function will be executed when .get() is invoked below.
+ */
+void
+test_factorial_default_async(void)
+{
+    TEST_START();
+
+    int n{5};
+
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "Main ThreadID=" << this_id << " ";
+
+    // This line used in an earlier test-fn is synonymous to following line:
+    // std::future<int> fu_res = std::async(factorial_async_fn, n);
+
+    // Async function returns -very-important-thing: A Future!
+    // async() method returns a FUTURE OBJECT!
+    std::future<int> fu_res = std::async((std::launch::deferred | std::launch::async),
+                                         factorial_default_async, n, this_id);
 
     // Print messages to show that async-fn is being executed and sleeping ...
     fmt::print("{} Factorial {}! = ... ", __LOC__, n);
