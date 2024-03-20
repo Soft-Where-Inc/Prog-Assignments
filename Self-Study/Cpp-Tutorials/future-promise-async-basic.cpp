@@ -15,6 +15,8 @@
  * -----------------------------------------------------------------------------
  */
 #include <iostream>
+#include <fmt/core.h>
+#include <thread>
 
 #if __linux__
 #include <cstring>
@@ -31,6 +33,7 @@ string Usage = " [ --help | test_<fn-name> ]\n";
 void test_this(void);
 void test_that(void);
 void test_msg(string);
+void test_factorial_thread(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -41,8 +44,10 @@ typedef struct test_fns
 } TEST_FNS;
 
 TEST_FNS Test_fns[] = {
-      { "test_this"     , test_this }
-    , { "test_that"     , test_that }
+      { "test_this"                 , test_this }
+    , { "test_that"                 , test_that }
+    , { "test_factorial_thread"     , test_factorial_thread }
+
 };
 
 // Test start / end info-msg macros
@@ -123,6 +128,20 @@ inline bool ends_with(std::string const & str, std::string const & substr)
     return std::equal(substr.rbegin(), substr.rend(), str.rbegin());
 }
 
+// **** Helper functions for test cases ****
+/**
+ * Basic definition of n! factorial(n), which will print the result as a message.
+ */
+void factorial(int n) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "ThreadID=" << this_id;
+    fmt::print(" Factorial {}! = {} ", n, res);
+}
+
 // **** Test cases ****
 
 void
@@ -155,6 +174,19 @@ test_msg(string msg)
     TEST_START();
     cout << msg;
     ends_with(msg, "Hello World.");
+    TEST_END();
+}
+
+/* Exercise factorial() function executed by a thread. */
+void
+test_factorial_thread(void)
+{
+    TEST_START();
+
+    std::thread t1(factorial, 4);
+
+    t1.join();
+
     TEST_END();
 }
 
