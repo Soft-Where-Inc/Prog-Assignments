@@ -38,6 +38,7 @@ void test_factorial_thread(void);
 void test_factorial_async(void);
 void test_factorial_deferred(void);
 void test_factorial_default_async(void);
+void test_factorial_parent_child_async(void);
 
 // -----------------------------------------------------------------------------
 // List of test functions one can invoke from the command-line
@@ -55,6 +56,8 @@ TEST_FNS Test_fns[] = {
     , { "test_factorial_deferred"   , test_factorial_deferred }
     , { "test_factorial_default_async"
                                     , test_factorial_default_async }
+    , { "test_factorial_parent_child_async"
+                                    , test_factorial_parent_child_async }
 
 };
 
@@ -381,6 +384,104 @@ test_factorial_default_async(void)
     // Print messages to show that async-fn is being executed and sleeping ...
     fmt::print("{} Factorial {}! = ... ", __LOC__, n);
     std::cout << std::flush;
+
+    // ------------------------------------------------------------------------
+    // You can execute the function and get the result using .get() method
+    // FUTURE is a "channel" to get result from child thread executing 'async'
+    // fn. fu_res.get() will wait till child thread finishes and will receive
+    // the result returned by the child thread.
+    // ------------------------------------------------------------------------
+    // NOTE: You can call .get() -ONLY-ONCE- to draw results!
+    auto res = 0;
+    res = fu_res.get();
+
+    fmt::print(" is {} ", res);
+    TEST_END();
+}
+
+/**
+ * *****************************************************************************
+ * Definition of n! factorial(n), which will be executed as an async function,
+ * by parent thread. Child will receive a 'promise' from parent giving the
+ * 'n' value to find factorial(n).
+ *
+ * This thread-function shows a usage of PROMISE feature where the parent
+ * communicates with the child thread.
+ *
+ * Child-thread's future-function itself receives a reference to a future
+ * which the parent will supply sometime in the future.
+ *
+ * Returns n!
+ */
+int factorial_parent_child_async(std::thread::id caller_tid,
+                                 std::future<int>& f) {
+
+    // Child has to do this to receive message from other thread
+    fmt::print("\n{} Child() thread: Waiting for future-promise to arrive ...\n",
+               __LOC__);
+    int n = f.get();
+
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+
+    // Confirm that caller -did- invoke using the interface which is:
+    //  (std::launch::deferred | std::launch::async). On Linux g++, seems like
+    // this will create a new async thread.
+    assert(caller_tid != this_id);
+
+    return res;
+}
+
+/**
+ * Exercise factorial() function executed as async function by parent.
+ * Test case shows a usage of PROMISE feature where the parent communicates
+ * with the child-thread to provide 'sometime in the future' the value of
+ * 'n' to compute factorial(n)!
+ *
+ * Parent will communicate the 'n' value to child by:
+ *  a) First creating a promise (to supply <int> value)
+ *  b) Create a future from this promise
+ *  c) Pass-down a reference to _this_ future when invoking the child thread.
+ *  d) Receive the result from child as normal, by future.get().
+ */
+void
+test_factorial_parent_child_async(void)
+{
+    TEST_START();
+
+    int n{5};   // We set 'n' here, but don't send it to child till much later.
+
+    std::promise<int> p;
+    std::future<int> fu_int_n = p.get_future();
+
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "Main ThreadID=" << this_id << " ";
+
+    // NOTE: You need to pass the future established to send the 'n' value
+    // down to the child as a REFERENCE to the future.
+    // Async function returns -very-important-thing: A Future!
+    // async() method returns a FUTURE OBJECT!
+    std::future<int> fu_res = std::async(std::launch::async,
+                                         factorial_parent_child_async,
+                                         this_id, std::ref(fu_int_n));
+
+    // Print messages to show that async-fn is being executed and sleeping ...
+    fmt::print("{} Factorial {}! = ... ", __LOC__, n);
+    std::cout << std::flush;
+
+    fmt::print("{} main() thread: Inducing artifical sleep for {} seconds ...",
+               __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+
+    // ------------------------------------------------------------------------
+    // NOW, supply the 'n' to the child thread, which has been waiting for
+    // this promise to be fulfilled.
+    p.set_value(n);
 
     // ------------------------------------------------------------------------
     // You can execute the function and get the result using .get() method
