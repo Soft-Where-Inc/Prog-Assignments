@@ -136,93 +136,6 @@ inline bool ends_with(std::string const & str, std::string const & substr)
     return std::equal(substr.rbegin(), substr.rend(), str.rbegin());
 }
 
-// **** Helper functions for test cases ****
-/**
- * Basic definition of n! factorial(n), which will print the result as a message.
- */
-void factorial(int n) {
-    int res = 1;
-    for (auto i = n; i > 1; --i) {
-        res *= i;
-    }
-    std::thread::id this_id = std::this_thread::get_id();
-    cout << "ThreadID=" << this_id;
-    fmt::print(" Factorial {}! = {} ", n, res);
-}
-
-/**
- * Definition of n! factorial(n), which will be executed as an async function.
- * Returns n!
- */
-int factorial_async_fn(int n) {
-    int res = 1;
-    for (auto i = n; i > 1; --i) {
-        res *= i;
-    }
-    // Print messages to show that async-fn is being executed and sleeping ...
-    std::thread::id this_id = std::this_thread::get_id();
-    cout << "ThreadID=" << this_id;
-    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
-    std::cout << std::flush;
-    std::this_thread::sleep_for(std::chrono::seconds(n));
-    return res;
-}
-
-/**
- * Definition of n! factorial(n), which will be executed as an async function,
- * but this is invoked using std::launch::deferred by the caller. So, this
- * function will be executed in the same [ main() ] thread of the caller.
- *.
- * Returns n!
- */
-int factorial_deferred_fn(int n, std::thread::id caller_tid) {
-    int res = 1;
-    for (auto i = n; i > 1; --i) {
-        res *= i;
-    }
-    // Print messages to show that async-fn is being executed and sleeping ...
-    std::thread::id this_id = std::this_thread::get_id();
-
-    // Confirm that caller -did- invoke using std::launch::deferred interface.
-    assert(caller_tid == this_id);
-
-    cout << "ThreadID=" << this_id;
-    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
-    std::cout << std::flush;
-    std::this_thread::sleep_for(std::chrono::seconds(n));
-    return res;
-}
-
-/**
- * Definition of n! factorial(n), which will be executed as an async function,
- * using default invocation interface:
- *  (std::launch::deferred | std::launch::async)
- *
- * It's implementation dependent whether a new async-thread will be created.
- * On Linux-VM g++, seems like this creates an async thread, by default.
- *.
- * Returns n!
- */
-int factorial_default_async(int n, std::thread::id caller_tid) {
-    int res = 1;
-    for (auto i = n; i > 1; --i) {
-        res *= i;
-    }
-    // Print messages to show that async-fn is being executed and sleeping ...
-    std::thread::id this_id = std::this_thread::get_id();
-
-    // Confirm that caller -did- invoke using the interface which is:
-    //  (std::launch::deferred | std::launch::async). On Linux g++, seems like
-    // this will create a new async thread.
-    assert(caller_tid != this_id);
-
-    cout << "ThreadID=" << this_id;
-    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
-    std::cout << std::flush;
-    std::this_thread::sleep_for(std::chrono::seconds(n));
-    return res;
-}
-
 // **** Test cases ****
 
 void
@@ -258,6 +171,26 @@ test_msg(string msg)
     TEST_END();
 }
 
+/**
+ * *****************************************************************************
+ * Test cases come in pairs: factorial*(), test_factorial*()
+ */
+
+/**
+ * *****************************************************************************
+ * Basic definition of n! factorial(n), which will print the result as a
+ * message.
+ */
+void factorial(int n) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "ThreadID=" << this_id;
+    fmt::print(" Factorial {}! = {} ", n, res);
+}
+
 /* Exercise factorial() function executed by a class thread. */
 void
 test_factorial_thread(void)
@@ -269,6 +202,25 @@ test_factorial_thread(void)
     t1.join();
 
     TEST_END();
+}
+
+/**
+ * *****************************************************************************
+ * Definition of n! factorial(n), which will be executed as an async function.
+ * Returns n!
+ */
+int factorial_async_fn(int n) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+    cout << "ThreadID=" << this_id;
+    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+    return res;
 }
 
 /* Exercise factorial() function executed by an async function */
@@ -308,6 +260,32 @@ test_factorial_async(void)
 }
 
 /**
+ * *****************************************************************************
+ * Definition of n! factorial(n), which will be executed as an async function,
+ * but this is invoked using std::launch::deferred by the caller. So, this
+ * function will be executed in the same [ main() ] thread of the caller.
+ *.
+ * Returns n!
+ */
+int factorial_deferred_fn(int n, std::thread::id caller_tid) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+
+    // Confirm that caller -did- invoke using std::launch::deferred interface.
+    assert(caller_tid == this_id);
+
+    cout << "ThreadID=" << this_id;
+    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+    return res;
+}
+
+/**
  * Exercise factorial() function executed by deferred execution by the same
  * thread as this main(). Deferred function will be executed when .get() is
  * invoked below.
@@ -343,6 +321,37 @@ test_factorial_deferred(void)
 
     fmt::print(" is {} ", res);
     TEST_END();
+}
+
+/**
+ * *****************************************************************************
+ * Definition of n! factorial(n), which will be executed as an async function,
+ * using default invocation interface:
+ *  (std::launch::deferred | std::launch::async)
+ *
+ * It's implementation dependent whether a new async-thread will be created.
+ * On Linux-VM g++, seems like this creates an async thread, by default.
+ *.
+ * Returns n!
+ */
+int factorial_default_async(int n, std::thread::id caller_tid) {
+    int res = 1;
+    for (auto i = n; i > 1; --i) {
+        res *= i;
+    }
+    // Print messages to show that async-fn is being executed and sleeping ...
+    std::thread::id this_id = std::this_thread::get_id();
+
+    // Confirm that caller -did- invoke using the interface which is:
+    //  (std::launch::deferred | std::launch::async). On Linux g++, seems like
+    // this will create a new async thread.
+    assert(caller_tid != this_id);
+
+    cout << "ThreadID=" << this_id;
+    fmt::print("{} Inducing artifical sleep for {} seconds ...", __LOC__, n);
+    std::cout << std::flush;
+    std::this_thread::sleep_for(std::chrono::seconds(n));
+    return res;
 }
 
 /**
