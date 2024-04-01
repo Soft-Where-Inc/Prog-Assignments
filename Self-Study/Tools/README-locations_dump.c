@@ -1,3 +1,7 @@
+/**
+ * Sample code fragments hacked together to get something working.
+ * Stuff did not compile on Linux or Mac.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
