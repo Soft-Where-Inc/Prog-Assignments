@@ -40,6 +40,7 @@ struct location
     const char *const file;
     const uint32_t    line;
     const uint32_t    spare;    // Compiler pad-bytes
+    const uint64_t    spare2;    // Compiler pad-bytes
 };
 
 /* A dummy location id used as reference point within the loc_ids section. All
@@ -69,6 +70,14 @@ extern struct location loc_id_ref;
 
 /* Get an 4-byte id describing the source location where this macro is used */
 #define CREATE_ID() CREATE_ID_INNER(__FUNCTION__, __FILE__, __LINE__)
+
+// Tracing macros
+
+#define STRINGIFY(x)       #x
+#define STRINGIFY_VALUE(s) STRINGIFY(s)
+
+// Fabricate a string to track code-location of call-site.
+#define __LOC__     "[" __FILE__ ":" STRINGIFY_VALUE(__LINE__) "]"
 
 /* Print the location described by a location id created by CREATE_ID() */
 void print_loc(int id);
