@@ -40,6 +40,16 @@ TEST_FNS Test_fns[] = {
 #define TEST_START()  printf("%s ", __func__)
 #define TEST_END()    printf(" ...OK\n")
 
+#define STRINGIFY(x)       #x
+#define STRINGIFY_VALUE(s) STRINGIFY(s)
+
+// Fabricate a string to track code-location of call-site.
+// RESOLVE: This isn't quite compiling ...
+#define __LOC__                                                 \
+    "[" __func__  "():" STRINGIFY_VALUE(__LINE__) "] "
+    // "[" STRINGIFY_VALUE(__func__)  "():" STRINGIFY_VALUE(__LINE__) "] "
+    // "[" __FUNC__  "():" STRINGIFY_VALUE(__LINE__) "] "
+
 /*
  * *****************************************************************************
  * main()
@@ -109,5 +119,8 @@ test_msg(const char *msg)
     TEST_START();
 
     const char *expmsg = "Hello World";
+    printf("%s: msg='%s', expmsg='%s', strlen()=%lu, sizeof()=%lu\n",
+            __FUNCTION__, msg, expmsg, strlen(expmsg), sizeof(expmsg));
     assert(strncmp(expmsg, msg, strlen(expmsg)) == 0);
+    TEST_END();
 }
